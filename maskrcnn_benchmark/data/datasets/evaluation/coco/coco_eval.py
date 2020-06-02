@@ -52,7 +52,7 @@ def do_coco_evaluation(
     results = COCOResults(*iou_types)
     logger.info("Evaluating predictions")
     for iou_type in iou_types:
-        with tempfile.NamedTemporaryFile() as f:
+        with tempfile.NamedTemporaryFile(delete=False) as f:
             file_path = f.name
             if output_folder:
                 file_path = os.path.join(output_folder, iou_type + ".json")
@@ -60,6 +60,7 @@ def do_coco_evaluation(
                 dataset.coco, coco_results[iou_type], file_path, iou_type
             )
             results.update(res)
+        os.remove(file_path)
     logger.info(results)
     check_expected_results(results, expected_results, expected_results_sigma_tol)
     if output_folder:
@@ -133,7 +134,7 @@ def prepare_for_coco_segmentation(predictions, dataset):
         # rles = prediction.get_field('mask')
 
         rles = [
-            mask_util.encode(np.array(mask[0, :, :, np.newaxis], order="F"))[0]
+            mask_util.encode(np.array(mask[0, :, :, np.newaxis], order="F").astype('uint8'))[0]
             for mask in masks
         ]
         for rle in rles:
