@@ -147,6 +147,22 @@ class DatasetCatalog(object):
             "mode": "mask",
             "mini": 10,
         },
+        "coco_VOC2007_train": {
+            "img_dir": r"E:\ResearchDOC\term2\MSRCNN_polyrnn\test\VOCtrainval_06-Nov-2007\VOCdevkit\VOC2007\JPEGImages",
+            "ann_file": r"E:\ResearchDOC\term2\MSRCNN_polyrnn\test\PASCAL_VOC\PASCAL_VOC\pascal_train2007.json"
+        },
+        "coco_VOC2007_val": {
+            "img_dir": r"E:\ResearchDOC\term2\MSRCNN_polyrnn\test\test\img",
+            "ann_file": r"E:\ResearchDOC\term2\MSRCNN_polyrnn\test\test\test.json"
+        },
+        "coco_austin_train": {
+            "img_dir": r"E:\ResearchDOC\term2\MSRCNN_polyrnn\maskrcnn-benchmark\dataForLittleTest\IMG",
+            "ann_file": r"E:\ResearchDOC\term2\MSRCNN_polyrnn\maskrcnn-benchmark\dataForLittleTest\inria.json"
+        },
+        "coco_austin_val": {
+            "img_dir": r"E:\ResearchDOC\term2\MSRCNN_polyrnn\maskrcnn-benchmark\dataForLittleTest\IMG",
+            "ann_file": r"E:\ResearchDOC\term2\MSRCNN_polyrnn\maskrcnn-benchmark\dataForLittleTest\inria.json"
+        },
     }
 
     @staticmethod

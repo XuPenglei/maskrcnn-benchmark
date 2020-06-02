@@ -134,7 +134,7 @@ def main():
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Training")
     parser.add_argument(
         "--config-file",
-        default="",
+        default=R"E:\Projects\maskrcnn-benchmark\configs\Inria_e2e_mask_rcnn_R_50_FPN_1x.yaml",
         metavar="FILE",
         help="path to config file",
         type=str,
@@ -177,8 +177,8 @@ def main():
     logger.info("Using {} GPUs".format(num_gpus))
     logger.info(args)
 
-    logger.info("Collecting env info (might take some time)")
-    logger.info("\n" + collect_env_info())
+    # logger.info("Collecting env info (might take some time)")
+    # logger.info("\n" + collect_env_info())
 
     logger.info("Loaded configuration file {}".format(args.config_file))
     with open(args.config_file, "r") as cf:
