@@ -304,7 +304,7 @@ class PolygonInstance(object):
         except TypeError:
             assert isinstance(size, (int, float))
             size = size, size
-
+        # 这里self.size对应bbox的(w,h)
         ratios = tuple(
             float(s) / float(s_orig) for s, s_orig in zip(size, self.size)
         )
@@ -333,6 +333,28 @@ class PolygonInstance(object):
         mask = mask_utils.decode(rle)
         mask = torch.from_numpy(mask)
         return mask
+
+    def convert_to_rnnformat(self,max_len):
+        width, height = self.size
+        assert len(self.polygons)==1
+        polygon = [p.numpy().reshape((-1,2)).astype(np.int32).clip(0,self.size-1)
+                    for p in self.polygons][0]
+        # 使用道格拉斯优化算法简化多边形
+        polygon = cv2.approxPolyDP(polygon, 0, False)[:, 0, :]
+        ver_mask = np.zeros((self.size,self.size))
+        edge_mask = ver_mask.copy()
+        ver_mask[polygon[1::2],polygon[::2]]=1
+        edge_mask = cv2.polylines(edge_mask,[polygon],True,[1])
+
+        arr_fwd_poly = np.ones((max_len,2),np.int32)*-1
+        arr_mask = np.zeros(max_len,np.int32)
+
+        len_to_keep = min(len(polygon), max_len)
+        arr_fwd_poly[:len_to_keep] = polygon[:len_to_keep]
+        arr_mask[:len_to_keep+1] = 1
+
+        return torch.from_numpy(ver_mask), torch.from_numpy(edge_mask), \
+               torch.from_numpy(arr_fwd_poly), torch.from_numpy(arr_mask)
 
     def __len__(self):
         return len(self.polygons)
@@ -445,6 +467,32 @@ class PolygonList(object):
 
         return BinaryMaskList(masks, size=self.size)
 
+    def convert_to_RNNformat(self,max_len):
+        ver_masks = []
+        edge_masks = []
+        arr_polys = []
+        poly_masks = []
+        if len(self)>0:
+            for p in self.polygons:
+                ver_m,edge_m,arr_p,poly_m = p.convert_to_rnnformat(max_len)
+                ver_masks.append(ver_m)
+                edge_masks.append(edge_m)
+                arr_polys.append(arr_p)
+                poly_masks.append(poly_m)
+            ver_masks = torch.stack(ver_masks)
+            edge_masks = torch.stack(edge_masks)
+            arr_polys = torch.stack(arr_polys)
+            poly_masks = torch.stack(poly_masks)
+        else:
+            size = self.size
+            ver_masks = torch.empty([0, size[1], size[0]], dtype=torch.uint8)
+            edge_masks = torch.empty([0, size[1], size[0]], dtype=torch.uint8)
+            arr_polys = torch.empty([0,max_len,2],dtype=torch.int32)
+            poly_masks = torch.empty([0,max_len],dtype=torch.int32)
+        return ver_masks, edge_masks, arr_polys, poly_masks
+
+
+
     def __len__(self):
         return len(self.polygons)
 
@@ -547,6 +595,13 @@ class SegmentationMask(object):
             instances = instances.convert_to_binarymask()
         # If there is only 1 instance
         return instances.masks.squeeze(0)
+
+    def get_rnn_tensor(self,max_len):
+        instances = self.instances
+        assert self.mode == "poly"
+        ver_masks, edge_masks, arr_polys, poly_masks = instances.convert_to_RNNformat(max_len)
+        return [ver_masks.squeeze(0),edge_masks.squeeze(0),arr_polys.squeeze(0), poly_masks.squeeze(0)]
+
 
     def __len__(self):
         return len(self.instances)
