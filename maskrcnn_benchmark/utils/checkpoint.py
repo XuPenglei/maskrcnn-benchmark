@@ -137,3 +137,28 @@ class DetectronCheckpointer(Checkpointer):
         if "model" not in loaded:
             loaded = dict(model=loaded)
         return loaded
+
+    def load(self, f=None, use_latest=True, retrain=False):
+        if self.has_checkpoint() and use_latest:
+            # override argument with existing checkpoint
+            f = self.get_checkpoint_file()
+            retrain = False
+        if not f:
+            # no checkpoint could be found
+            self.logger.info("No checkpoint found. Initializing model from scratch")
+            return {}
+        self.logger.info("Loading checkpoint from {}".format(f))
+        checkpoint = self._load_file(f)
+        self._load_model(checkpoint)
+        if not retrain:
+            if "optimizer" in checkpoint and self.optimizer:
+                self.logger.info("Loading optimizer from {}".format(f))
+                self.optimizer.load_state_dict(checkpoint.pop("optimizer"))
+            if "scheduler" in checkpoint and self.scheduler:
+                self.logger.info("Loading scheduler from {}".format(f))
+                self.scheduler.load_state_dict(checkpoint.pop("scheduler"))
+        else:
+            checkpoint["iteration"] = 0
+
+        # return any further checkpoint data
+        return checkpoint
