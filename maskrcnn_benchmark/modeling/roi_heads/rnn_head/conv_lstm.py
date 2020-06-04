@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import Utils.utils as utils
+import maskrcnn_benchmark.modeling.roi_heads.rnn_head.rnn_utils as utils
 
 class AttConvLSTM(nn.Module):
     def __init__(self, cfg):
@@ -20,14 +20,14 @@ class AttConvLSTM(nn.Module):
         self.time_steps = cfg.MODEL.ROI_RNN_HEAD.MAX_LEN
         self.use_bn = cfg.MODEL.ROI_RNN_HEAD.USE_BN
 
-        assert (len(self.hidden_dim) == n_layers)
+        assert (len(self.hidden_dim) == self.n_layers)
 
         # Not a fused implementation so that batchnorm
         # can be applied separately before adding
 
         self.conv_x = []
         self.conv_h = []
-        if use_bn:
+        if self.use_bn:
             self.bn_x = []
             self.bn_h = []
             self.bn_c = []
@@ -46,7 +46,7 @@ class AttConvLSTM(nn.Module):
                     out_channels=4 * hidden_dim,
                     kernel_size=self.kernel_size,
                     padding=self.kernel_size // 2,
-                    bias=not use_bn
+                    bias=not self.use_bn
                 )
             )
 
@@ -56,20 +56,20 @@ class AttConvLSTM(nn.Module):
                     out_channels=4 * hidden_dim,
                     kernel_size=self.kernel_size,
                     padding=self.kernel_size // 2,
-                    bias=not use_bn
+                    bias=not self.use_bn
                 )
             )
 
-            if use_bn:
+            if self.use_bn:
                 # Independent BatchNorm per timestep
-                self.bn_x.append(nn.ModuleList([nn.BatchNorm2d(4 * hidden_dim) for i in range(time_steps)]))
-                self.bn_h.append(nn.ModuleList([nn.BatchNorm2d(4 * hidden_dim) for i in range(time_steps)]))
-                self.bn_c.append(nn.ModuleList([nn.BatchNorm2d(hidden_dim) for i in range(time_steps)]))
+                self.bn_x.append(nn.ModuleList([nn.BatchNorm2d(4 * hidden_dim) for i in range(self.time_steps)]))
+                self.bn_h.append(nn.ModuleList([nn.BatchNorm2d(4 * hidden_dim) for i in range(self.time_steps)]))
+                self.bn_c.append(nn.ModuleList([nn.BatchNorm2d(hidden_dim) for i in range(self.time_steps)]))
 
         self.conv_x = nn.ModuleList(self.conv_x)
         self.conv_h = nn.ModuleList(self.conv_h)
 
-        if use_bn:
+        if self.use_bn:
             self.bn_x = nn.ModuleList(self.bn_x)
             self.bn_h = nn.ModuleList(self.bn_h)
             self.bn_c = nn.ModuleList(self.bn_c)

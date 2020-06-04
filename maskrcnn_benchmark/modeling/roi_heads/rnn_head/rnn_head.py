@@ -36,7 +36,7 @@ def keep_only_positive_boxes(boxes,keep_num=None):
         # positive_boxes.append(boxes_per_image[inds])
         # positive_inds.append(inds_mask)
         if keep_num and len(inds)>keep_num:
-            sample_ind = np.random.choice(inds.numpy(),keep_num,False)
+            sample_ind = np.random.choice(inds.cpu().numpy().astype(np.int),keep_num,False)
             sampled_boxes.append(boxes_per_image[sample_ind])
             # sampled_inds.append(sample_ind)
     # return positive_boxes, positive_inds, sampled_boxes, sampled_inds
@@ -143,16 +143,17 @@ class ROIRnnHead(torch.nn.Module):
         out_dict.pop('feats')
 
         if self.training:
+            device = out_dict['poly_class'].device
             dt_targets = dt_targets_from_class(out_dict['poly_class'].cpu().numpy(),
                                                self.cfg.MODEL.ROI_RNN_HEAD.POOLER_RESOLUTION,
                                                self.cfg.MODEL.ROI_RNN_HEAD.DT_THRESOLD)
             fp_weight = self.cfg.MODEL.ROI_RNN_HEAD.FP_WEIGHT
             vertex_loss = losses.poly_vertex_loss_mle(torch.from_numpy(dt_targets).to(device),
-                                               ver_masks, out_dict['logits'])
+                                               poly_masks, out_dict['logits'])
             fp_edge_loss =  fp_weight * losses.fp_edge_loss(edge_masks,
                                                                 out_dict['edge_logits'])
-            fp_vertex_loss = fp_weight * losses.fp_vertex_loss(data['vertex_mask'].to(device),
-                                                                            out_dict['vertex_logits'])
+            fp_vertex_loss = fp_weight * losses.fp_vertex_loss(ver_masks,
+                                                                        out_dict['vertex_logits'])
 
         return out_dict, all_proposals, dict(vertex_loss = vertex_loss, loss_fp_edge = fp_edge_loss, loss_fp_vertex = fp_vertex_loss)
 

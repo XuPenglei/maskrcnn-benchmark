@@ -4,6 +4,7 @@ import torch
 from .box_head.box_head import build_roi_box_head
 from .mask_head.mask_head import build_roi_mask_head
 from .keypoint_head.keypoint_head import build_roi_keypoint_head
+from .rnn_head.rnn_head import build_roi_rnn_head
 
 
 class CombinedROIHeads(torch.nn.ModuleDict):
@@ -39,6 +40,12 @@ class CombinedROIHeads(torch.nn.ModuleDict):
             x, detections, loss_mask = self.mask(mask_features, detections, targets)
             losses.update(loss_mask)
 
+        if self.cfg.MODEL.VERTEX_ON:
+            mask_features = features
+            x, detections, loss_vertex = self.vertex(mask_features, detections, targets)
+            losses.update(loss_vertex)
+
+
         if self.cfg.MODEL.KEYPOINT_ON:
             keypoint_features = features
             # optimization: during training, if we share the feature extractor between
@@ -68,6 +75,8 @@ def build_roi_heads(cfg, in_channels):
         roi_heads.append(("mask", build_roi_mask_head(cfg, in_channels)))
     if cfg.MODEL.KEYPOINT_ON:
         roi_heads.append(("keypoint", build_roi_keypoint_head(cfg, in_channels)))
+    if cfg.MODEL.VERTEX_ON:
+        roi_heads.append(("vertex", build_roi_rnn_head(cfg,in_channels)))
 
     # combine individual heads in a single module
     if roi_heads:

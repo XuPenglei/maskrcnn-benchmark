@@ -337,13 +337,14 @@ class PolygonInstance(object):
     def convert_to_rnnformat(self,max_len):
         width, height = self.size
         assert len(self.polygons)==1
-        polygon = [p.numpy().reshape((-1,2)).astype(np.int32).clip(0,self.size-1)
+        assert width==height
+        polygon = [p.numpy().reshape((-1,2)).astype(np.int32).clip(0,width-1)
                     for p in self.polygons][0]
         # 使用道格拉斯优化算法简化多边形
         polygon = cv2.approxPolyDP(polygon, 0, False)[:, 0, :]
-        ver_mask = np.zeros((self.size,self.size))
+        ver_mask = np.zeros(self.size)
         edge_mask = ver_mask.copy()
-        ver_mask[polygon[1::2],polygon[::2]]=1
+        ver_mask[polygon[:,1],polygon[:,0]]=1
         edge_mask = cv2.polylines(edge_mask,[polygon],True,[1])
 
         arr_fwd_poly = np.ones((max_len,2),np.int32)*-1

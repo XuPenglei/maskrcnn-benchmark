@@ -18,8 +18,8 @@ class FirstVertex(nn.Module):
         )
 
         self.edge_fc = nn.Linear(
-            in_features=grid_size ** 2 * 16,
-            out_features=grid_size ** 2
+            in_features=self.grid_size ** 2 * 16,
+            out_features=self.grid_size ** 2
         )
 
         self.vertex_conv = nn.Conv2d(
@@ -30,8 +30,8 @@ class FirstVertex(nn.Module):
         )
 
         self.vertex_fc = nn.Linear(
-            in_features=grid_size ** 2 * 16,
-            out_features=grid_size ** 2
+            in_features=self.grid_size ** 2 * 16,
+            out_features=self.grid_size ** 2
         )
 
     def forward(self, feats, temperature=0.0, beam_size=1):

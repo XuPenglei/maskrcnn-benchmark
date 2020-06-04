@@ -1,6 +1,8 @@
 import torch
 from torch.nn import functional as F
 
+import numpy as np
+
 from maskrcnn_benchmark.modeling.matcher import Matcher
 from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
 from maskrcnn_benchmark.modeling.utils import cat
@@ -147,6 +149,19 @@ class Target_Preprocessor(object):
             cfg.MODEL.ROI_HEADS.BG_IOU_THRESHOLD,
             allow_low_quality_matches=True,
         )
+
+    def match_targets_to_proposals(self, proposal, target):
+        match_quality_matrix = boxlist_iou(target, proposal)
+        matched_idxs = self.matcher(match_quality_matrix)
+        # Mask RCNN needs "labels" and "masks "fields for creating the targets
+        target = target.copy_with_fields(["labels", "masks"])
+        # get the targets corresponding GT for each proposal
+        # NB: need to clamp the indices because we can have a single
+        # GT in the image, and matched_idxs can be -2, which goes
+        # out of bounds
+        matched_targets = target[matched_idxs.clamp(min=0)]
+        matched_targets.add_field("matched_idxs", matched_idxs)
+        return matched_targets
 
     def prepare_targets(self,proposals,targets,enlarge_scale):
         labels = []

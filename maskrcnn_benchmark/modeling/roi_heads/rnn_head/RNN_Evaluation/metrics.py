@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 # from maskrcnn_benchmark.utils import utils
-import maskrcnn_benchmark.utils.RNN_utils as utils
+import maskrcnn_benchmark.utils.RNN_Utils.utils as utils
 def accuracy(poly, mask, pred_polys, grid_size):
     """
     Computes prediction accuracy
