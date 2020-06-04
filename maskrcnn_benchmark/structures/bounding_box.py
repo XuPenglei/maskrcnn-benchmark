@@ -164,6 +164,7 @@ class BoxList(object):
             bbox.add_field(k, v)
         return bbox.convert(self.mode)
 
+
     def crop(self, box):
         """
         Crops a rectangular region from this bounding box. The box is a
@@ -253,6 +254,27 @@ class BoxList(object):
         s += "image_height={}, ".format(self.size[1])
         s += "mode={})".format(self.mode)
         return s
+
+    def enlarge(self, ratio):
+        # 外扩bbox
+        xmin, ymin, xmax, ymax = self._split_into_xyxy()
+        w, h = xmax-xmin, ymax - ymin
+        x_change, y_change = ratio*0.5*w, ratio*0.5*h
+        enlarge_xmin = (xmin - x_change).clamp(min=0, max=self.size[0])
+        enlarge_ymin = (ymin - y_change).clamp(min=0, max=self.size[1])
+        enlarge_xmax = (xmax + x_change).clamp(min=0, max=self.size[0])
+        enlarge_ymax = (ymax + y_change).clamp(min=0, max=self.size[1])
+
+        enlarge_box = torch.cat(
+            (enlarge_xmin, enlarge_ymin, enlarge_xmax, enlarge_ymax), dim=-1
+        )
+        bbox = BoxList(enlarge_box, self.size, mode="xyxy")
+        for k, v in self.extra_fields.items():
+            bbox.add_field(k, v)
+        return bbox.convert(self.mode)
+
+
+
 
 
 if __name__ == "__main__":

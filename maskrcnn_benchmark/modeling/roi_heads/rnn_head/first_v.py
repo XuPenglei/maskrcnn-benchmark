@@ -4,11 +4,12 @@ import torch.nn.functional as F
 
 
 class FirstVertex(nn.Module):
-    def __init__(self, max_len, grid_size, feats_channels):
+    def __init__(self, cfg):
         """ max_len is the max length of vertexes list allowed """
         super(FirstVertex, self).__init__()
-        self.grid_size = grid_size
-        self.max_len = max_len
+        self.grid_size = cfg.MODEL.ROI_RNN_HEAD.POOLER_RESOLUTION
+        self.max_len = cfg.MODEL.ROI_RNN_HEAD.MAX_LEN
+        feats_channels = cfg.MODEL.RESNETS.BACKBONE_OUT_CHANNELS
         self.edge_conv = nn.Conv2d(
             in_channels=feats_channels,
             out_channels=16,

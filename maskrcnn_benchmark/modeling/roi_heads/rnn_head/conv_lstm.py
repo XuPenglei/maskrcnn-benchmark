@@ -4,23 +4,21 @@ import torch.nn.functional as F
 import Utils.utils as utils
 
 class AttConvLSTM(nn.Module):
-    def __init__(self, opts, feats_channels, grid_size, device, n_layers=2,
-                 hidden_dim=[64, 16], kernel_size=3, time_steps=71,
-                 use_bn=True):
+    def __init__(self, cfg):
         """
         input_shape: a list -> [b, c, h, w]
         hidden_dim: Number of hidden states in the convLSTM
         """
         super(AttConvLSTM, self).__init__()
-        self.device = device
-        self.opts = opts
-        self.feats_channels = feats_channels
-        self.grid_size = grid_size
-        self.hidden_dim = hidden_dim
-        self.kernel_size = kernel_size
-        self.n_layers = n_layers
-        self.time_steps = time_steps
-        self.use_bn = use_bn
+        # TODO: 多GPU设置？
+        self.device = cfg.MODEL.DEVICE
+        self.feats_channels = cfg.MODEL.RESNETS.BACKBONE_OUT_CHANNELS
+        self.grid_size = cfg.MODEL.ROI_RNN_HEAD.POOLER_RESOLUTION
+        self.hidden_dim = cfg.MODEL.ROI_RNN_HEAD.HIDDEN_DIM
+        self.kernel_size = cfg.MODEL.ROI_RNN_HEAD.KERNEL_SIZE
+        self.n_layers = cfg.MODEL.ROI_RNN_HEAD.N_LSTM_LAYERS
+        self.time_steps = cfg.MODEL.ROI_RNN_HEAD.MAX_LEN
+        self.use_bn = cfg.MODEL.ROI_RNN_HEAD.USE_BN
 
         assert (len(self.hidden_dim) == n_layers)
 
