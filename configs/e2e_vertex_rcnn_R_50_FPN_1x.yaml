@@ -56,6 +56,10 @@ MODEL:
     DT_THRESOLD : 2
     
     FP_WEIGHT : 200
+    SOFT_VERTEX_LABEL: False
+    SOFT_EDGE_LABEL: False
+    VERTEX_SOFT_VALUE: 0.7
+    EDGE_SOFT_VALUE: 0.8
   VERTEX_ON: True
 DATASETS:
   TRAIN: ("coco_austin_train",)

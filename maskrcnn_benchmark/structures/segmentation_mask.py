@@ -346,7 +346,8 @@ class PolygonInstance(object):
         edge_mask = ver_mask.copy()
         ver_mask[polygon[:,1],polygon[:,0]]=1
         edge_mask = cv2.polylines(edge_mask,[polygon],True,[1])
-
+        # 把首尾放在一起
+        polygon = np.append(polygon,[polygon[0]],axis=0)
         arr_fwd_poly = np.ones((max_len,2),np.int32)*-1
         arr_mask = np.zeros(max_len,np.int32)
 

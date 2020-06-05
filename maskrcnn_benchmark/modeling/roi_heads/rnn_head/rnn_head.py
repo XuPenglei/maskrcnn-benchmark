@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 import numpy as np
+import matplotlib.pyplot as plt
 
 from maskrcnn_benchmark.structures.bounding_box import BoxList
 from .roi_rnn_feature_extractors import make_roi_rnn_feature_extractor
@@ -94,13 +95,11 @@ class ROIRnnHead(torch.nn.Module):
             first_log_prob=first_logprob,
             return_attention=self.cfg.MODEL.ROI_RNN_HEAD.RETURN_ATTENTION,
         )
+        out_dict['edge_logits'] = edge_logits
+        out_dict['vertex_logits'] = vertex_logits
 
-        if self.training:
-            out_dict['edge_logits'] = edge_logits
-            out_dict['vertex_logits'] = vertex_logits
-
-            if poly_class is not None:
-                out_dict['poly_class'] = poly_class.type(torch.long)
+        if poly_class is not None:
+            out_dict['poly_class'] = poly_class.type(torch.long)
         # TODO: 测试部分未完成
         # else:
         #     if fp_beam_size != 1 or lstm_beam_size != 1:
@@ -142,18 +141,25 @@ class ROIRnnHead(torch.nn.Module):
         out_dict.pop('rnn_state')
         out_dict.pop('feats')
 
-        if self.training:
-            device = out_dict['poly_class'].device
-            dt_targets = dt_targets_from_class(out_dict['poly_class'].cpu().numpy(),
-                                               self.cfg.MODEL.ROI_RNN_HEAD.POOLER_RESOLUTION,
-                                               self.cfg.MODEL.ROI_RNN_HEAD.DT_THRESOLD)
-            fp_weight = self.cfg.MODEL.ROI_RNN_HEAD.FP_WEIGHT
-            vertex_loss = losses.poly_vertex_loss_mle(torch.from_numpy(dt_targets).to(device),
-                                               poly_masks, out_dict['logits'])
-            fp_edge_loss =  fp_weight * losses.fp_edge_loss(edge_masks,
-                                                                out_dict['edge_logits'])
-            fp_vertex_loss = fp_weight * losses.fp_vertex_loss(ver_masks,
-                                                                        out_dict['vertex_logits'])
+        device = out_dict['poly_class'].device
+        dt_targets = dt_targets_from_class(out_dict['poly_class'].cpu().numpy(),
+                                           self.cfg.MODEL.ROI_RNN_HEAD.POOLER_RESOLUTION,
+                                           self.cfg.MODEL.ROI_RNN_HEAD.DT_THRESOLD)
+        # TODO 直接放在预处理中可以加速
+        if self.cfg.MODEL.ROI_RNN_HEAD.SOFT_EDGE_LABEL:
+            edge_masks = torch.from_numpy(soft_gt_masks(edge_masks.cpu().numpy(),
+                                       self.cfg.MODEL.ROI_RNN_HEAD.EDGE_SOFT_VALUE)).to(device)
+        if self.cfg.MODEL.ROI_RNN_HEAD.SOFT_VERTEX_LABEL:
+            ver_masks = torch.from_numpy(soft_gt_masks(ver_masks.cpu().numpy(),
+                                                        self.cfg.MODEL.ROI_RNN_HEAD.VERTEX_SOFT_VALUE)).to(device)
+
+        fp_weight = self.cfg.MODEL.ROI_RNN_HEAD.FP_WEIGHT
+        vertex_loss = losses.poly_vertex_loss_mle(torch.from_numpy(dt_targets).to(device),
+                                           poly_masks, out_dict['logits'])
+        fp_edge_loss =  fp_weight * losses.fp_edge_loss(edge_masks,
+                                                            out_dict['edge_logits'])
+        fp_vertex_loss = fp_weight * losses.fp_vertex_loss(ver_masks,
+                                                                    out_dict['vertex_logits'])
 
         return out_dict, all_proposals, dict(vertex_loss = vertex_loss, loss_fp_edge = fp_edge_loss, loss_fp_vertex = fp_vertex_loss)
 

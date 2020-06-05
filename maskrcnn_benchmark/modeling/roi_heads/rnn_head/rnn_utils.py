@@ -2,12 +2,28 @@ import torch
 from torch.nn import functional as F
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 from maskrcnn_benchmark.modeling.matcher import Matcher
 from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
 from maskrcnn_benchmark.modeling.utils import cat
 
-from scipy.ndimage.morphology import distance_transform_cdt
+from scipy.ndimage.morphology import distance_transform_cdt,binary_dilation
+
+def soft_gt_masks(masks,soft_val):
+    """
+    将mask标签周围建立缓冲区
+    masks: [bs, grid_size, grid_size]
+     """
+    assert len(masks.shape)==3
+    soft_masks = []
+    for m in masks:
+        in_m = -1*m
+        s_m = binary_dilation(m,structure=np.ones((3,3)))
+        soft_masks.append((in_m+s_m)*soft_val+m)
+    return np.array(soft_masks,dtype=np.float32)
+
+
 
 def dt_targets_from_class(poly, grid_size, dt_threshold):
     """
@@ -181,6 +197,7 @@ class Target_Preprocessor(object):
 
             # this can probably be removed, but is left here for clarity
             # and completeness
+            # TODO 可能导致部分proposal无匹配项
             neg_inds = matched_idxs == Matcher.BELOW_LOW_THRESHOLD
             labels_per_image[neg_inds] = 0
 
