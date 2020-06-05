@@ -5,6 +5,7 @@ import os
 import time
 
 import torch
+from torch import nn
 import torch.distributed as dist
 from tqdm import tqdm
 
@@ -87,14 +88,20 @@ def do_train(
 
         # reduce losses over all GPUs for logging purposes
         loss_dict_reduced = reduce_loss_dict(loss_dict)
-        losses_reduced = sum(loss for loss in loss_dict_reduced.values())
-        meters.update(loss=losses_reduced, **loss_dict_reduced)
+        detect_loss_reduced = sum(values for keys,values in loss_dict_reduced.items() if "rnn" not in keys)
+        vertex_loss_reduced = sum(values for keys,values in loss_dict_reduced.items() if "rnn" in keys)
+        # losses_reduced = sum(loss for loss in loss_dict_reduced.values())
+        meters.update(detect_loss=detect_loss_reduced,
+                      vertex_loss = vertex_loss_reduced,
+                      **loss_dict_reduced)
 
         optimizer.zero_grad()
         # Note: If mixed precision is not used, this ends up doing nothing
         # Otherwise apply loss scaling for mixed-precision recipe
         with amp.scale_loss(losses, optimizer) as scaled_losses:
             scaled_losses.backward()
+        if cfg.MODEL.MODEL.ROI_RNN_HEAD.GRAD_CLIP >0 and cfg.MODEL.VERTEX_ON:
+            nn.utils.clip_grad(model.parameters(),cfg.MODEL.MODEL.ROI_RNN_HEAD.GRAD_CLIP)
         optimizer.step()
         scheduler.step()
 

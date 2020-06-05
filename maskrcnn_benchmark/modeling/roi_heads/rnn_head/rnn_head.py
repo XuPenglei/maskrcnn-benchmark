@@ -11,6 +11,7 @@ from .rnn_utils import *
 from .first_v import FirstVertex
 from .conv_lstm import AttConvLSTM
 from .loss import *
+from .Utils import utils
 
 def keep_only_positive_boxes(boxes,keep_num=None):
     """
@@ -52,9 +53,20 @@ class ROIRnnHead(torch.nn.Module):
         self.conv_lstm = AttConvLSTM(cfg)
         self.target_preprocessor = Target_Preprocessor(cfg)
         self.post_processor = ""
+        # init
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_in', nonlinearity='relu')
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.xavier_uniform_(m.weight)
+                nn.init.constant_(m.bias, 0)
 
     def forward(self,features, proposals, targets=None):
-
         if self.training:
             fp_beam_size = self.cfg.MODEL.ROI_RNN_HEAD.TRAIN_FP_BEAM_SIZE
             lstm_beam_size = self.cfg.MODEL.ROI_RNN_HEAD.TRAIN_BEAM_SIZE
@@ -68,28 +80,40 @@ class ROIRnnHead(torch.nn.Module):
             fp_beam_size = self.cfg.MODEL.ROI_RNN_HEAD.TEST_FP_BEAM_SIZE
             lstm_beam_size = self.cfg.MODEL.ROI_RNN_HEAD.TEST_BEAM_SIZE
             temperature = self.cfg.MODEL.ROI_RNN_HEAD.TEST_TEMP
+
+        if fp_beam_size !=1 or lstm_beam_size != 1:
+            assert not self.training,'Run beam search only in test mode'
+
         x = self.feature_extractor(features,proposals)
 
         edge_logits, vertex_logits, first_logprob,first_v = self.firstV(x,temperature,fp_beam_size)
 
         poly_class = None
-        if targets is not None:
+        if self.training:
+            assert targets is not None
             poly_class = xy_to_class(arr_polys,
                                      grid_size=self.cfg.MODEL.ROI_RNN_HEAD.POOLER_RESOLUTION)
-            if self.training:
-                first_v = poly_class[:, 0]
-                first_logprob = None
-            else:
-                first_v = poly_class[:, 0]
-                first_logprob = None
-                lstm_beam_size = 1
+            first_v = poly_class[:, 0]
+            first_logprob = None
+
+        # if targets is not None:
+        #     poly_class = xy_to_class(arr_polys,
+        #                              grid_size=self.cfg.MODEL.ROI_RNN_HEAD.POOLER_RESOLUTION)
+        #     if self.training:
+        #         first_v = poly_class[:, 0]
+        #         first_logprob = None
+        #     else:
+        #         first_v = poly_class[:, 0]
+        #         first_logprob = None
+        #         lstm_beam_size = 1
+
+
 
         out_dict = self.conv_lstm(
             x,
             first_v,
             poly_class,
             temperature = temperature,
-            mode = "train_ce",
             fp_beam_size=fp_beam_size,
             beam_size=lstm_beam_size,
             first_log_prob=first_logprob,
@@ -100,48 +124,48 @@ class ROIRnnHead(torch.nn.Module):
 
         if poly_class is not None:
             out_dict['poly_class'] = poly_class.type(torch.long)
+
+        device = out_dict['poly_class'].device
         # TODO: 测试部分未完成
-        # else:
-        #     if fp_beam_size != 1 or lstm_beam_size != 1:
-        #         # Automatically means that this is in test mode
-        #         # because of the assertion in the beginning
-        #
-        #         # comparison metric is of shape [batch_size * fp_beam_size * lstm_beam_size]
-        #         if 'tool' in self.mode:
-        #             # Check for intersections and remove
-        #             isect = utils.count_self_intersection(
-        #                 out_dict['pred_polys'].cpu().numpy(),
-        #                 self.encoder.feat_size
-        #             )
-        #             isect[isect != 0] -= float('inf')
-        #             # 0 means no intersection, -inf for intersection
-        #             isect = torch.from_numpy(isect).to(torch.float32).to(device)
-        #             comparison_metric = comparison_metric + isect
-        #             print (comparison_metric)
-        #
-        #         comparison_metric = comparison_metric.view(batch_size, fp_beam_size, lstm_beam_size)
-        #         out_dict['pred_polys'] = out_dict['pred_polys'].view(batch_size, fp_beam_size, lstm_beam_size, -1)
-        #
-        #         # Max across beams
-        #         comparison_metric, beam_idx = torch.max(comparison_metric, dim=-1)
-        #
-        #         # Max across first points
-        #         comparison_metric, fp_beam_idx = torch.max(comparison_metric, dim=-1)
-        #
-        #         pred_polys = torch.zeros(batch_size, self.opts['max_poly_len'], device=device,
-        #             dtype=out_dict['pred_polys'].dtype)
-        #
-        #         for b in torch.arange(batch_size, dtype=torch.int32):
-        #             # Get best beam from all first points and all beams
-        #             pred_polys[b, :] = out_dict['pred_polys'][b, fp_beam_idx[b], beam_idx[b, fp_beam_idx[b]], :]
-        #
-        #         out_dict['pred_polys'] = pred_polys
+        if not self.training:
+            if fp_beam_size != 1 or lstm_beam_size != 1:
+                # Automatically means that this is in test mode
+                # because of the assertion in the beginning
+
+                # comparison metric is of shape [batch_size * fp_beam_size * lstm_beam_size]
+                    # Check for intersections and remove
+                isect = utils.count_self_intersection(
+                    out_dict['pred_polys'].cpu().numpy(),
+                    self.cfg.MODEL.ROI_RNN_HEAD.POOLER_RESOLUTION
+                )
+                isect[isect != 0] -= float('inf')
+                # 0 means no intersection, -inf for intersection
+                isect = torch.from_numpy(isect).to(torch.float32).to(device)
+                comparison_metric = comparison_metric + isect
+                print (comparison_metric)
+
+                comparison_metric = comparison_metric.view(batch_size, fp_beam_size, lstm_beam_size)
+                out_dict['pred_polys'] = out_dict['pred_polys'].view(batch_size, fp_beam_size, lstm_beam_size, -1)
+
+                # Max across beams
+                comparison_metric, beam_idx = torch.max(comparison_metric, dim=-1)
+
+                # Max across first points
+                comparison_metric, fp_beam_idx = torch.max(comparison_metric, dim=-1)
+
+                pred_polys = torch.zeros(batch_size, self.cfg.MODEL.ROI_RNN_HEAD.MAX_LEN, device=device,
+                    dtype=out_dict['pred_polys'].dtype)
+
+                for b in torch.arange(batch_size, dtype=torch.int32):
+                    # Get best beam from all first points and all beams
+                    pred_polys[b, :] = out_dict['pred_polys'][b, fp_beam_idx[b], beam_idx[b, fp_beam_idx[b]], :]
+
+                out_dict['pred_polys'] = pred_polys
 
         out_dict['proposals'] = poly_class
         out_dict.pop('rnn_state')
         out_dict.pop('feats')
 
-        device = out_dict['poly_class'].device
         dt_targets = dt_targets_from_class(out_dict['poly_class'].cpu().numpy(),
                                            self.cfg.MODEL.ROI_RNN_HEAD.POOLER_RESOLUTION,
                                            self.cfg.MODEL.ROI_RNN_HEAD.DT_THRESOLD)
@@ -161,7 +185,10 @@ class ROIRnnHead(torch.nn.Module):
         fp_vertex_loss = fp_weight * losses.fp_vertex_loss(ver_masks,
                                                                     out_dict['vertex_logits'])
 
-        return out_dict, all_proposals, dict(vertex_loss = vertex_loss, loss_fp_edge = fp_edge_loss, loss_fp_vertex = fp_vertex_loss)
+        if not self.training:
+
+
+        return out_dict, all_proposals, dict(rnn_loss_vertex = vertex_loss, rnn_loss_fp_edge = fp_edge_loss, rnn_loss_fp_vertex = fp_vertex_loss)
 
 
 def build_roi_rnn_head(cfg,in_channels):

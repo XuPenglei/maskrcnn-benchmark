@@ -164,12 +164,11 @@ class AttConvLSTM(nn.Module):
         return feats, att
 
     def forward(self, feats, first_vertex, poly=None,
-                temperature=0.0, mode='train_ce',
+                temperature=0.0,
                 fp_beam_size=1,
                 beam_size=1,
                 first_log_prob=None,
-                return_attention=False,
-                use_correction=False):
+                return_attention=False):
         """
         feats: [b, c, h, w]
         first_vertex: [b, ]
@@ -190,12 +189,11 @@ class AttConvLSTM(nn.Module):
             return self.beam_forward(**params)
 
     def beam_forward(self, feats, first_vertex, poly=None,
-                     temperature=0.0, mode='train_ce',
+                     temperature=0.0,
                      fp_beam_size=1,
                      beam_size=1,
                      first_log_prob=None,
-                     return_attention=False,
-                     use_correction=False):
+                     return_attention=False):
         """
         first_vertex: [b, fp_beam_size],
         first_log_prob: [b, fp_beam_size]
@@ -404,12 +402,11 @@ class AttConvLSTM(nn.Module):
         return out_dict
 
     def vanilla_forward(self, feats, first_vertex, poly=None,
-                        temperature=0.0, mode='train_ce',
+                        temperature=0.0,
                         fp_beam_size=1,
                         beam_size=1,
                         first_log_prob=None,
-                        return_attention=False,
-                        use_correction=False):
+                        return_attention=False):
         """
         See forward
         """
@@ -417,12 +414,12 @@ class AttConvLSTM(nn.Module):
         # it implements all the different modes that we have in
         # a single function. Need to find cleaner alternatives
 
-        if mode == 'tool' and poly is not None:
+        # if mode == 'tool' and poly is not None:
             # fp_beam_size is the beam size to be used at the
             # first vertex after correction
-            expanded = False
-            first_vertex = first_vertex.unsqueeze(1)
-            first_vertex = first_vertex.repeat([1, fp_beam_size])
+            # expanded = False
+            # first_vertex = first_vertex.unsqueeze(1)
+            # first_vertex = first_vertex.repeat([1, fp_beam_size])
             # Repeat same first vertex fp_beam_size times
             # We will diverge the beams after the corrected vertex
 
@@ -450,7 +447,8 @@ class AttConvLSTM(nn.Module):
             out_attention = [torch.zeros(batch_size, 1, self.grid_size, self.grid_size, device=self.device)]
         pred_polys = [first_vertex.to(torch.float32)]
 
-        if not mode == 'test':
+        # if not mode == 'test':
+        if self.training:
             logits = [torch.zeros(batch_size, self.grid_size ** 2 + 1, device=self.device)]
 
         if first_log_prob is None:
@@ -500,34 +498,40 @@ class AttConvLSTM(nn.Module):
                     # t+1 because we want to keep the EOS
                     # for the loss as well (t goes from 0 to self.time_steps-1)
 
-            if not 'test' in mode:
+            # if not 'test' in mode:
+            if self.training:
                 logits.append(logits_t)
 
             v_prev2 = v_prev2.copy_(v_prev1)
-
-            if mode == 'train_ce':
+            # 徐朋磊修改
+            if self.training:
                 v_prev1 = utils.class_to_grid(poly[:, t], v_prev1, self.grid_size)
-
-            elif mode == 'train_ggnn' and use_correction:
-                # GGNN trains on corrected polygons
-
-                pred = self.correct_next_input(pred, poly[:, t])
-                v_prev1 = utils.class_to_grid(pred, v_prev1, self.grid_size)
-
-            elif mode == 'tool':
-                if poly is not None and not expanded:
-                    if poly[0, t] != self.grid_size ** 2:
-                        pred = (poly[:, t]).repeat(fp_beam_size)
-                    else:
-                        expanded = True
-                        print('Expanded beam at time: ', t)
-                        logprob, pred = torch.topk(logprobs[0, :], fp_beam_size, dim=-1)
-
-                v_prev1 = utils.class_to_grid(pred, v_prev1, self.grid_size)
-
             else:
-                # Test mode or train_rl
                 v_prev1 = utils.class_to_grid(pred, v_prev1, self.grid_size)
+
+            # if mode == 'train_ce':
+            #     v_prev1 = utils.class_to_grid(poly[:, t], v_prev1, self.grid_size)
+            #
+            # elif mode == 'train_ggnn' and use_correction:
+            #     # GGNN trains on corrected polygons
+            #
+            #     pred = self.correct_next_input(pred, poly[:, t])
+            #     v_prev1 = utils.class_to_grid(pred, v_prev1, self.grid_size)
+            #
+            # elif mode == 'tool':
+            #     if poly is not None and not expanded:
+            #         if poly[0, t] != self.grid_size ** 2:
+            #             pred = (poly[:, t]).repeat(fp_beam_size)
+            #         else:
+            #             expanded = True
+            #             print('Expanded beam at time: ', t)
+            #             logprob, pred = torch.topk(logprobs[0, :], fp_beam_size, dim=-1)
+            #
+            #     v_prev1 = utils.class_to_grid(pred, v_prev1, self.grid_size)
+            #
+            # else:
+            #     # Test mode or train_rl
+            #     v_prev1 = utils.class_to_grid(pred, v_prev1, self.grid_size)
 
             pred_polys.append(pred.to(torch.float32))
             log_probs.append(logprob)
@@ -553,7 +557,8 @@ class AttConvLSTM(nn.Module):
         out_dict['feats'] = feats
         # Return the reshape feats based on beam sizes
 
-        if not 'test' in mode:
+        # if not 'test' in mode:
+        if self.training:
             out_dict['log_probs'] = log_probs
 
             logits = torch.stack(logits)  # (self.time_steps, b, self.grid_size**2 + 1)
