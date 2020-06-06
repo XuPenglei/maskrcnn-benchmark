@@ -5,7 +5,7 @@ import torch
 import os
 import numpy as np
 from scipy.ndimage.morphology import distance_transform_cdt
-from Utils.poly_point_isect import isect_polygon__naive_check
+from .poly_point_isect import isect_polygon__naive_check
 
 
 def check_self_intersection(poly):

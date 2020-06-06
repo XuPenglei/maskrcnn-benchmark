@@ -102,7 +102,7 @@ def run_test(cfg, model, distributed):
         model = model.module
     torch.cuda.empty_cache()  # TODO check if it helps
     iou_types = ("bbox",)
-    if cfg.MODEL.MASK_ON:
+    if cfg.MODEL.MASK_ON or cfg.MODEL.VERTEX_ON:
         iou_types = iou_types + ("segm",)
     if cfg.MODEL.KEYPOINT_ON:
         iou_types = iou_types + ("keypoints",)

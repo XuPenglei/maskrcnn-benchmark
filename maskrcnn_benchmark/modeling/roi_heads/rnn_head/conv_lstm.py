@@ -450,6 +450,7 @@ class AttConvLSTM(nn.Module):
         # if not mode == 'test':
         if self.training:
             logits = [torch.zeros(batch_size, self.grid_size ** 2 + 1, device=self.device)]
+        # logits = [torch.zeros(batch_size, self.grid_size ** 2 + 1, device=self.device)]
 
         if first_log_prob is None:
             log_probs = [torch.zeros(batch_size, device=self.device)]
@@ -501,6 +502,7 @@ class AttConvLSTM(nn.Module):
             # if not 'test' in mode:
             if self.training:
                 logits.append(logits_t)
+            # logits.append(logits_t)
 
             v_prev2 = v_prev2.copy_(v_prev1)
             # 徐朋磊修改
@@ -565,6 +567,12 @@ class AttConvLSTM(nn.Module):
             out_dict['logits'] = logits.permute(1, 0, 2)
 
             out_dict['lengths'] = lengths
+        # out_dict['log_probs'] = log_probs
+
+        # logits = torch.stack(logits)  # (self.time_steps, b, self.grid_size**2 + 1)
+        # out_dict['logits'] = logits.permute(1, 0, 2)
+        #
+        # out_dict['lengths'] = lengths
 
         if return_attention:
             out_attention = torch.stack(out_attention)

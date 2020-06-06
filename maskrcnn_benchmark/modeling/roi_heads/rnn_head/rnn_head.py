@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 
 from maskrcnn_benchmark.structures.bounding_box import BoxList
 from .roi_rnn_feature_extractors import make_roi_rnn_feature_extractor
+from .inference import make_roi_vertex_post_processor
 from .RNN_Evaluation import losses,metrics
 # from .rnn_utils import Target_Preprocessor,xy_to_class,class_to_grid
 from .rnn_utils import *
@@ -52,7 +53,7 @@ class ROIRnnHead(torch.nn.Module):
         self.firstV = FirstVertex(cfg)
         self.conv_lstm = AttConvLSTM(cfg)
         self.target_preprocessor = Target_Preprocessor(cfg)
-        self.post_processor = ""
+        self.post_processor = make_roi_vertex_post_processor(cfg)
         # init
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -84,7 +85,7 @@ class ROIRnnHead(torch.nn.Module):
         if fp_beam_size !=1 or lstm_beam_size != 1:
             assert not self.training,'Run beam search only in test mode'
 
-        x = self.feature_extractor(features,proposals)
+        x = self.feature_extractor(features, proposals)
 
         edge_logits, vertex_logits, first_logprob,first_v = self.firstV(x,temperature,fp_beam_size)
 
@@ -125,7 +126,7 @@ class ROIRnnHead(torch.nn.Module):
         if poly_class is not None:
             out_dict['poly_class'] = poly_class.type(torch.long)
 
-        device = out_dict['poly_class'].device
+        device = x.device
         # TODO: 测试部分未完成
         if not self.training:
             if fp_beam_size != 1 or lstm_beam_size != 1:
@@ -166,29 +167,34 @@ class ROIRnnHead(torch.nn.Module):
         out_dict.pop('rnn_state')
         out_dict.pop('feats')
 
-        dt_targets = dt_targets_from_class(out_dict['poly_class'].cpu().numpy(),
-                                           self.cfg.MODEL.ROI_RNN_HEAD.POOLER_RESOLUTION,
-                                           self.cfg.MODEL.ROI_RNN_HEAD.DT_THRESOLD)
-        # TODO 直接放在预处理中可以加速
-        if self.cfg.MODEL.ROI_RNN_HEAD.SOFT_EDGE_LABEL:
-            edge_masks = torch.from_numpy(soft_gt_masks(edge_masks.cpu().numpy(),
-                                       self.cfg.MODEL.ROI_RNN_HEAD.EDGE_SOFT_VALUE)).to(device)
-        if self.cfg.MODEL.ROI_RNN_HEAD.SOFT_VERTEX_LABEL:
-            ver_masks = torch.from_numpy(soft_gt_masks(ver_masks.cpu().numpy(),
-                                                        self.cfg.MODEL.ROI_RNN_HEAD.VERTEX_SOFT_VALUE)).to(device)
+        if targets is not None:
+            dt_targets = dt_targets_from_class(out_dict['poly_class'].cpu().numpy(),
+                                               self.cfg.MODEL.ROI_RNN_HEAD.POOLER_RESOLUTION,
+                                               self.cfg.MODEL.ROI_RNN_HEAD.DT_THRESOLD)
+            # TODO 直接放在预处理中可以加速
+            if self.cfg.MODEL.ROI_RNN_HEAD.SOFT_EDGE_LABEL:
+                edge_masks = torch.from_numpy(soft_gt_masks(edge_masks.cpu().numpy(),
+                                           self.cfg.MODEL.ROI_RNN_HEAD.EDGE_SOFT_VALUE)).to(device)
+            if self.cfg.MODEL.ROI_RNN_HEAD.SOFT_VERTEX_LABEL:
+                ver_masks = torch.from_numpy(soft_gt_masks(ver_masks.cpu().numpy(),
+                                                            self.cfg.MODEL.ROI_RNN_HEAD.VERTEX_SOFT_VALUE)).to(device)
+            fp_weight = self.cfg.MODEL.ROI_RNN_HEAD.FP_WEIGHT
+            vertex_loss = losses.poly_vertex_loss_mle(torch.from_numpy(dt_targets).to(device),
+                                               poly_masks, out_dict['logits'])
+            fp_edge_loss =  fp_weight * losses.fp_edge_loss(edge_masks,
+                                                                out_dict['edge_logits'])
+            fp_vertex_loss = fp_weight * losses.fp_vertex_loss(ver_masks,
+                                                                        out_dict['vertex_logits'])
 
-        fp_weight = self.cfg.MODEL.ROI_RNN_HEAD.FP_WEIGHT
-        vertex_loss = losses.poly_vertex_loss_mle(torch.from_numpy(dt_targets).to(device),
-                                           poly_masks, out_dict['logits'])
-        fp_edge_loss =  fp_weight * losses.fp_edge_loss(edge_masks,
-                                                            out_dict['edge_logits'])
-        fp_vertex_loss = fp_weight * losses.fp_vertex_loss(ver_masks,
-                                                                    out_dict['vertex_logits'])
+            if not self.training:
+                result = self.post_processor(out_dict['pred_polys'],proposals)
+                return x, result, dict(rnn_loss_vertex = vertex_loss, rnn_loss_fp_edge = fp_edge_loss, rnn_loss_fp_vertex = fp_vertex_loss)
+        else:
+            if not self.training:
+                result = self.post_processor(out_dict['pred_polys'],proposals)
+                return x, result, {}
 
-        if not self.training:
-
-
-        return out_dict, all_proposals, dict(rnn_loss_vertex = vertex_loss, rnn_loss_fp_edge = fp_edge_loss, rnn_loss_fp_vertex = fp_vertex_loss)
+        return x, all_proposals, dict(rnn_loss_vertex = vertex_loss, rnn_loss_fp_edge = fp_edge_loss, rnn_loss_fp_vertex = fp_vertex_loss)
 
 
 def build_roi_rnn_head(cfg,in_channels):

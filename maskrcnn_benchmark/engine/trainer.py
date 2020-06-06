@@ -64,7 +64,7 @@ def do_train(
     end = time.time()
 
     iou_types = ("bbox",)
-    if cfg.MODEL.MASK_ON:
+    if cfg.MODEL.MASK_ON or cfg.MODEL.VERTEX_ON:
         iou_types = iou_types + ("segm",)
     if cfg.MODEL.KEYPOINT_ON:
         iou_types = iou_types + ("keypoints",)
@@ -100,8 +100,8 @@ def do_train(
         # Otherwise apply loss scaling for mixed-precision recipe
         with amp.scale_loss(losses, optimizer) as scaled_losses:
             scaled_losses.backward()
-        if cfg.MODEL.MODEL.ROI_RNN_HEAD.GRAD_CLIP >0 and cfg.MODEL.VERTEX_ON:
-            nn.utils.clip_grad(model.parameters(),cfg.MODEL.MODEL.ROI_RNN_HEAD.GRAD_CLIP)
+        if cfg.MODEL.ROI_RNN_HEAD.GRAD_CLIP >0 and cfg.MODEL.VERTEX_ON:
+            nn.utils.clip_grad.clip_grad_value_(model.parameters(),cfg.MODEL.ROI_RNN_HEAD.GRAD_CLIP)
         optimizer.step()
         scheduler.step()
 

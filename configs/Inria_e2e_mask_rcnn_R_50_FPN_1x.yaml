@@ -49,7 +49,7 @@ SOLVER:
   TEST_PERIOD: 0
   IMS_PER_BATCH: 2
 TEST:
-  IMS_PER_BATCH: 1
+  IMS_PER_BATCH: 2
 OUTPUT_DIR: r"E:\Projects\maskrcnn-benchmark\OUT_DIR"
 DTYPE: "float16"
 

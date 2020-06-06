@@ -43,7 +43,7 @@ class MaskPostProcessor(nn.Module):
         labels = torch.cat(labels)
         index = torch.arange(num_masks, device=labels.device)
         mask_prob = mask_prob[index, labels][:, None]
-
+        # 将tensor分割到各个图片
         boxes_per_image = [len(box) for box in boxes]
         mask_prob = mask_prob.split(boxes_per_image, dim=0)
 
@@ -171,6 +171,7 @@ class Masker(object):
 
     def forward_single_image(self, masks, boxes):
         boxes = boxes.convert("xyxy")
+        # 输入图片原始尺寸
         im_w, im_h = boxes.size
         res = [
             paste_mask_in_image(mask[0], box, im_h, im_w, self.threshold, self.padding)
@@ -184,6 +185,7 @@ class Masker(object):
         return res
 
     def __call__(self, masks, boxes):
+        # masks: [img,masks in single img, channel(1), grid_size, grid_size]
         if isinstance(boxes, BoxList):
             boxes = [boxes]
 

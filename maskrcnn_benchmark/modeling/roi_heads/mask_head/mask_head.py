@@ -68,6 +68,7 @@ class ROIMaskHead(torch.nn.Module):
             x = x[torch.cat(positive_inds, dim=0)]
         else:
             x = self.feature_extractor(features, proposals)
+        # 7,2,28,28
         mask_logits = self.predictor(x)
 
         if not self.training:
