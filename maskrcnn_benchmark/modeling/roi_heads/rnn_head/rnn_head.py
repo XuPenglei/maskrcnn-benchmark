@@ -14,7 +14,7 @@ from .conv_lstm import AttConvLSTM
 from .loss import *
 from .Utils import utils
 
-def keep_only_positive_boxes(boxes,keep_num=None):
+def keep_only_positive_boxes(boxes):
     """
     Given a set of BoxList containing the `labels` field,
     return a set of BoxList for which `labels > 0`.
@@ -27,8 +27,8 @@ def keep_only_positive_boxes(boxes,keep_num=None):
     assert isinstance(boxes, (list, tuple))
     assert isinstance(boxes[0], BoxList)
     assert boxes[0].has_field("labels")
-    # positive_boxes = []
-    # positive_inds = []
+    positive_boxes = []
+    positive_inds = []
     sampled_boxes = []
     # sampled_inds = []
     num_boxes = 0
@@ -36,14 +36,14 @@ def keep_only_positive_boxes(boxes,keep_num=None):
         labels = boxes_per_image.get_field("labels")
         inds_mask = labels > 0
         inds = inds_mask.nonzero().squeeze(1)
-        # positive_boxes.append(boxes_per_image[inds])
-        # positive_inds.append(inds_mask)
-        if keep_num and len(inds)>keep_num:
+        positive_boxes.append(boxes_per_image[inds])
+        positive_inds.append(inds_mask)
+        """if keep_num and len(inds)>keep_num:
             sample_ind = np.random.choice(inds.cpu().numpy().astype(np.int),keep_num,False)
-            sampled_boxes.append(boxes_per_image[sample_ind])
+            sampled_boxes.append(boxes_per_image[sample_ind])"""
             # sampled_inds.append(sample_ind)
-    # return positive_boxes, positive_inds, sampled_boxes, sampled_inds
-    return sampled_boxes
+    return positive_boxes, positive_inds
+    """return sampled_boxes"""
 
 class ROIRnnHead(torch.nn.Module):
     def __init__(self,cfg, in_channels):
@@ -73,14 +73,16 @@ class ROIRnnHead(torch.nn.Module):
             lstm_beam_size = self.cfg.MODEL.ROI_RNN_HEAD.TRAIN_BEAM_SIZE
             temperature = self.cfg.MODEL.ROI_RNN_HEAD.TRAIN_TEMP
             all_proposals = proposals
-            proposals = keep_only_positive_boxes(proposals,
-                                                 self.cfg.MODEL.ROI_RNN_HEAD.SAMPLE_NUM)
+            proposals, positive_inds = keep_only_positive_boxes(proposals)
             ver_masks, edge_masks, arr_polys, poly_masks, proposals = \
-                self.target_preprocessor.prepare_targets(proposals,targets,self.cfg.MODEL.ROI_RNN_HEAD.BOX_ENLARGE_RATIO)
+                self.target_preprocessor.prepare_targets(proposals,targets,
+                                                         self.cfg.MODEL.ROI_RNN_HEAD.BOX_ENLARGE_RATIO,
+                                                         keep_num=self.cfg.MODEL.ROI_RNN_HEAD.SAMPLE_NUM)
         else:
             fp_beam_size = self.cfg.MODEL.ROI_RNN_HEAD.TEST_FP_BEAM_SIZE
             lstm_beam_size = self.cfg.MODEL.ROI_RNN_HEAD.TEST_BEAM_SIZE
             temperature = self.cfg.MODEL.ROI_RNN_HEAD.TEST_TEMP
+            proposals = [b.enlarge(self.cfg.MODEL.ROI_RNN_HEAD.BOX_ENLARGE_RATIO) for b in proposals]
 
         if fp_beam_size !=1 or lstm_beam_size != 1:
             assert not self.training,'Run beam search only in test mode'

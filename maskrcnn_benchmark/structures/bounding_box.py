@@ -286,3 +286,6 @@ if __name__ == "__main__":
     t_bbox = bbox.transpose(0)
     print(t_bbox)
     print(t_bbox.bbox)
+
+    e_bbox = bbox.enlarge(0.2)
+    print(e_bbox.bbox)

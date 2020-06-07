@@ -153,10 +153,10 @@ class DetectronCheckpointer(Checkpointer):
         if not retrain:
             if "optimizer" in checkpoint and self.optimizer:
                 self.logger.info("Loading optimizer from {}".format(f))
-                self.optimizer.load_state_dict(checkpoint.pop("optimizer"))
+                # self.optimizer.load_state_dict(checkpoint.pop("optimizer"))
             if "scheduler" in checkpoint and self.scheduler:
                 self.logger.info("Loading scheduler from {}".format(f))
-                self.scheduler.load_state_dict(checkpoint.pop("scheduler"))
+                # self.scheduler.load_state_dict(checkpoint.pop("scheduler"))
         else:
             checkpoint["iteration"] = 0
 

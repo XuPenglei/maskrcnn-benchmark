@@ -163,12 +163,12 @@ class Target_Preprocessor(object):
         self.matcher = Matcher(
             cfg.MODEL.ROI_HEADS.FG_IOU_THRESHOLD,
             cfg.MODEL.ROI_HEADS.BG_IOU_THRESHOLD,
-            allow_low_quality_matches=True,
+            allow_low_quality_matches=False,
         )
 
     def match_targets_to_proposals(self, proposal, target):
         match_quality_matrix = boxlist_iou(target, proposal)
-        matched_idxs = self.matcher(match_quality_matrix)
+        matched_idxs, match_vals = self.matcher(match_quality_matrix,True)
         # Mask RCNN needs "labels" and "masks "fields for creating the targets
         target = target.copy_with_fields(["labels", "masks"])
         # get the targets corresponding GT for each proposal
@@ -176,10 +176,13 @@ class Target_Preprocessor(object):
         # GT in the image, and matched_idxs can be -2, which goes
         # out of bounds
         matched_targets = target[matched_idxs.clamp(min=0)]
+        match_vals = match_vals[matched_idxs.clamp(min=0)]
         matched_targets.add_field("matched_idxs", matched_idxs)
+        assert len(matched_targets)==len(match_vals)
+        matched_targets.add_field("matched_vals", match_vals)
         return matched_targets
 
-    def prepare_targets(self,proposals,targets,enlarge_scale):
+    def prepare_targets(self,proposals,targets,enlarge_scale,keep_num):
         labels = []
         ver_masks = []
         edge_masks = []
@@ -191,6 +194,7 @@ class Target_Preprocessor(object):
                 proposals_per_image, targets_per_image
             )
             matched_idxs = matched_targets.get_field("matched_idxs")
+            matched_vals = matched_targets.get_field("matched_vals")
 
             labels_per_image = matched_targets.get_field("labels")
             labels_per_image = labels_per_image.to(dtype=torch.int64)
@@ -200,9 +204,14 @@ class Target_Preprocessor(object):
             # TODO 可能导致部分proposal无匹配项
             neg_inds = matched_idxs == Matcher.BELOW_LOW_THRESHOLD
             labels_per_image[neg_inds] = 0
+            matched_vals[neg_inds] = 0
 
             # mask scores are only computed on positive samples
             positive_inds = torch.nonzero(labels_per_image > 0).squeeze(1)
+            matched_vals = matched_vals[positive_inds]
+            if keep_num>0:
+                sorted_vals, sorted_inds = matched_vals.sort(-1,True)
+                positive_inds = positive_inds[sorted_inds[:keep_num]]
 
             segmentation_masks = matched_targets.get_field("masks")
             segmentation_masks = segmentation_masks[positive_inds]

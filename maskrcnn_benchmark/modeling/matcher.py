@@ -39,7 +39,7 @@ class Matcher(object):
         self.low_threshold = low_threshold
         self.allow_low_quality_matches = allow_low_quality_matches
 
-    def __call__(self, match_quality_matrix):
+    def __call__(self, match_quality_matrix, reture_val=False):
         """
         Args:
             match_quality_matrix (Tensor[float]): an MxN tensor, containing the
@@ -77,8 +77,10 @@ class Matcher(object):
 
         if self.allow_low_quality_matches:
             self.set_low_quality_matches_(matches, all_matches, match_quality_matrix)
-
+        if reture_val:
+            return matches, matched_vals
         return matches
+
 
     def set_low_quality_matches_(self, matches, all_matches, match_quality_matrix):
         """
