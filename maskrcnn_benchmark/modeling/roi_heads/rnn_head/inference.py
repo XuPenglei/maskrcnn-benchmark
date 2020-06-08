@@ -16,6 +16,8 @@ def class_to_grid(poly,grid_size,mask=None):
             x = int(i%grid_size)
             y = int(i/grid_size)
             grid_polygon.append([x,y])
+        # else:
+        #     break
     if mask is not None:
         assert mask.shape[0]==mask.shape[1]==grid_size
         cv2.fillPoly(mask,[np.array(grid_polygon)],[1])

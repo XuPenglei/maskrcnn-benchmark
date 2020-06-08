@@ -88,7 +88,7 @@ class Pooler(nn.Module):
         rois = torch.cat([ids, concat_boxes], dim=1)
         return rois
 
-    def forward(self, x, boxes):
+    def forward(self, x, boxes, original_boxes=None):
         """
         Arguments:
             x (list[Tensor]): feature maps for each level
@@ -96,12 +96,14 @@ class Pooler(nn.Module):
         Returns:
             result (Tensor)
         """
+        if original_boxes is None:
+            original_boxes = boxes
         num_levels = len(self.poolers)
         rois = self.convert_to_roi_format(boxes)
         if num_levels == 1:
             return self.poolers[0](x[0], rois)
 
-        levels = self.map_levels(boxes)
+        levels = self.map_levels(original_boxes)
 
         num_rois = len(rois)
         num_channels = x[0].shape[1]

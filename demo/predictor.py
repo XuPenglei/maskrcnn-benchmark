@@ -46,6 +46,7 @@ class COCODemo(object):
     # COCO categories for pretty print
     CATEGORIES = [
         "__background",
+        "building",
         "person",
         "bicycle",
         "car",
@@ -213,7 +214,7 @@ class COCODemo(object):
         if self.show_mask_heatmaps:
             return self.create_mask_montage(result, top_predictions)
         result = self.overlay_boxes(result, top_predictions)
-        if self.cfg.MODEL.MASK_ON:
+        if self.cfg.MODEL.MASK_ON or self.cfg.MODEL.VERTEX_ON:
             result = self.overlay_mask(result, top_predictions)
         if self.cfg.MODEL.KEYPOINT_ON:
             result = self.overlay_keypoints(result, top_predictions)
@@ -324,13 +325,14 @@ class COCODemo(object):
         labels = predictions.get_field("labels")
 
         colors = self.compute_colors_for_labels(labels).tolist()
-
+        color_single = [255,0,0]
         for mask, color in zip(masks, colors):
             thresh = mask[0, :, :, None].astype(np.uint8)
             contours, hierarchy = cv2_util.findContours(
                 thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
             )
-            image = cv2.drawContours(image, contours, -1, color, 3)
+            image = cv2.drawContours(image, contours, -1, color_single, 1)
+            # image = cv2.addWeighted(image,0.8,mask[0][:,:,None].repeat(3,-1),0.2,0)
 
         composite = image
 

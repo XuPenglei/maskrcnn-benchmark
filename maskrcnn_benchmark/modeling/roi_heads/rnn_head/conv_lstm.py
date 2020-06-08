@@ -101,6 +101,29 @@ class AttConvLSTM(nn.Module):
             out_features=self.grid_size ** 2 + 1,
         )
 
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_in', nonlinearity='relu')
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.xavier_uniform_(m.weight)
+                nn.init.constant_(m.bias, 0)
+
+        # for m in self.conv_h.modules():
+        #     if isinstance(m,nn.ModuleList):
+        #         [nn.init.orthogonal(c.weight) for c in m]
+        #     else:
+        #         nn.init.orthogonal(m.weight)
+        # for m in self.conv_x.modules():
+        #     if isinstance(m, nn.ModuleList):
+        #         [nn.init.orthogonal(c.weight) for c in m]
+        #     else:
+        #         nn.init.orthogonal(m.weight)
+
     def rnn_step(self, t, input, cur_state):
         """
         t: time step

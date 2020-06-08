@@ -189,6 +189,8 @@ class Target_Preprocessor(object):
         arr_polys = []
         poly_masks = []
         out_proposals = []
+        # 未进行enlarge之前的boxes，以便选择正确的pooler级别
+        original_boxes = []
         for proposals_per_image, targets_per_image in zip(proposals, targets):
             matched_targets = self.match_targets_to_proposals(
                 proposals_per_image, targets_per_image
@@ -212,11 +214,14 @@ class Target_Preprocessor(object):
             if keep_num>0:
                 sorted_vals, sorted_inds = matched_vals.sort(-1,True)
                 positive_inds = positive_inds[sorted_inds[:keep_num]]
+            # if keep_num>0:
+            #     positive_inds = positive_inds[:keep_num]
 
             segmentation_masks = matched_targets.get_field("masks")
             segmentation_masks = segmentation_masks[positive_inds]
 
             positive_proposals = proposals_per_image[positive_inds]
+            original_boxes.append(positive_proposals)
             if enlarge_scale > 0:
                 positive_proposals = positive_proposals.enlarge(enlarge_scale)
             out_proposals.append(positive_proposals)
@@ -231,7 +236,8 @@ class Target_Preprocessor(object):
             arr_polys.append(rnn_input_per_img[2])
             poly_masks.append(rnn_input_per_img[3])
         return cat(ver_masks,0),cat(edge_masks,0),\
-               cat(arr_polys,0),cat(poly_masks,0),out_proposals
+               cat(arr_polys,0),cat(poly_masks,0),\
+               out_proposals,original_boxes
 
 
 

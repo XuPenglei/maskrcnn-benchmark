@@ -5,6 +5,7 @@ import numpy as np
 from maskrcnn_benchmark.layers.misc import interpolate
 from maskrcnn_benchmark.utils import cv2_util
 import pycocotools.mask as mask_utils
+import random
 
 # transpose
 FLIP_LEFT_RIGHT = 0
@@ -341,7 +342,8 @@ class PolygonInstance(object):
         polygon = [p.numpy().reshape((-1,2)).astype(np.int32).clip(0,width-1)
                     for p in self.polygons][0]
         # 使用道格拉斯优化算法简化多边形
-        polygon = cv2.approxPolyDP(polygon, 0, False)[:, 0, :]
+        polygon = np.roll(polygon, random.choice(range(polygon.shape[0])), axis=0)
+        # polygon = cv2.approxPolyDP(polygon, 0, False)[:, 0, :]
         ver_mask = np.zeros(self.size)
         edge_mask = ver_mask.copy()
         ver_mask[polygon[:,1],polygon[:,0]]=1

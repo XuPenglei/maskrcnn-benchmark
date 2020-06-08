@@ -62,6 +62,7 @@ MODEL:
     VERTEX_SOFT_VALUE: 0.7
     EDGE_SOFT_VALUE: 0.8
   VERTEX_ON: True
+  VERTEX_ONLY: TRUE
 DATASETS:
   TRAIN: ("coco_austin_train",)
   TEST: ("coco_austin_val",)
