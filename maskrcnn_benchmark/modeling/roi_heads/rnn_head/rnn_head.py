@@ -67,7 +67,9 @@ class ROIRnnHead(torch.nn.Module):
                 nn.init.xavier_uniform_(m.weight)
                 nn.init.constant_(m.bias, 0)
 
-    def forward(self,features, proposals, targets=None):
+    def forward(self, features, proposals, targets=None):
+        if self.cfg.MODEL.VERTEX_ONLY:
+            proposals = targets
         if self.training:
             fp_beam_size = self.cfg.MODEL.ROI_RNN_HEAD.TRAIN_FP_BEAM_SIZE
             lstm_beam_size = self.cfg.MODEL.ROI_RNN_HEAD.TRAIN_BEAM_SIZE
@@ -75,7 +77,7 @@ class ROIRnnHead(torch.nn.Module):
             all_proposals = proposals
             proposals, positive_inds = keep_only_positive_boxes(proposals)
             ver_masks, edge_masks, arr_polys, poly_masks, proposals, original_boxes = \
-                self.target_preprocessor.prepare_targets(proposals,targets,
+                self.target_preprocessor.prepare_targets(proposals, targets,
                                                          self.cfg.MODEL.ROI_RNN_HEAD.BOX_ENLARGE_RATIO,
                                                          keep_num=self.cfg.MODEL.ROI_RNN_HEAD.SAMPLE_NUM)
         else:
@@ -178,22 +180,26 @@ class ROIRnnHead(torch.nn.Module):
             # TODO 直接放在预处理中可以加速
             if self.cfg.MODEL.ROI_RNN_HEAD.SOFT_EDGE_LABEL:
                 edge_masks = torch.from_numpy(soft_gt_masks(edge_masks.cpu().numpy(),
-                                           self.cfg.MODEL.ROI_RNN_HEAD.EDGE_SOFT_VALUE)).to(device)
+                                                            self.cfg.MODEL.ROI_RNN_HEAD.EDGE_SOFT_VALUE)).to(device)
             if self.cfg.MODEL.ROI_RNN_HEAD.SOFT_VERTEX_LABEL:
                 ver_masks = torch.from_numpy(soft_gt_masks(ver_masks.cpu().numpy(),
-                                                            self.cfg.MODEL.ROI_RNN_HEAD.VERTEX_SOFT_VALUE)).to(device)
+                                                           self.cfg.MODEL.ROI_RNN_HEAD.VERTEX_SOFT_VALUE)).to(device)
             fp_edge_weight = self.cfg.MODEL.ROI_RNN_HEAD.FP_EDGE_WEIGHT
             fp_vertex_weight = self.cfg.MODEL.ROI_RNN_HEAD.FP_VERTEX_WEIGHT
+            if self.cfg.MODEL.VERTEX_ONLY:
+                factor = 1
+            else:
+                factor = 0.01
             vertex_loss = losses.poly_vertex_loss_mle(torch.from_numpy(dt_targets).to(device),
-                                               poly_masks, out_dict['logits']) * 0.01
-            fp_edge_loss =  fp_edge_weight * losses.fp_edge_loss(edge_masks,
-                                                                out_dict['edge_logits'])
+                                                      poly_masks, out_dict['logits']) * factor
+            fp_edge_loss = fp_edge_weight * losses.fp_edge_loss(edge_masks,
+                                                                out_dict['edge_logits']) * factor
             fp_vertex_loss = fp_vertex_weight * losses.fp_vertex_loss(ver_masks,
-                                                                        out_dict['vertex_logits']) * 0.1
-
+                                                                      out_dict['vertex_logits']) * factor
             if not self.training:
-                result = self.post_processor(out_dict['pred_polys'],proposals)
-                return x, result, dict(rnn_loss_vertex = vertex_loss, rnn_loss_fp_edge = fp_edge_loss, rnn_loss_fp_vertex = fp_vertex_loss)
+                result = self.post_processor(out_dict['pred_polys'], proposals)
+                return x, result, dict(rnn_loss_vertex=vertex_loss, rnn_loss_fp_edge=fp_edge_loss,
+                                       rnn_loss_fp_vertex=fp_vertex_loss)
         else:
             if not self.training:
                 result = self.post_processor(out_dict['pred_polys'],proposals)

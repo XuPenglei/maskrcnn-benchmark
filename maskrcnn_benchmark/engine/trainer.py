@@ -88,11 +88,14 @@ def do_train(
 
         # reduce losses over all GPUs for logging purposes
         loss_dict_reduced = reduce_loss_dict(loss_dict)
-        detect_loss_reduced = sum(values for keys,values in loss_dict_reduced.items() if "rnn" not in keys)
-        vertex_loss_reduced = sum(values for keys,values in loss_dict_reduced.items() if "rnn" in keys)
+        detect_loss_reduced = sum(values for keys, values in loss_dict_reduced.items() if "rnn" not in keys)
+        if cfg.MODEL.VERTEX_ON:
+            vertex_loss_reduced = sum(values for keys, values in loss_dict_reduced.items() if "rnn" in keys)
+            if cfg.MODEL.VERTEX_ONLY:
+                detect_loss_reduced = None
         # losses_reduced = sum(loss for loss in loss_dict_reduced.values())
         meters.update(detect_loss=detect_loss_reduced,
-                      vertex_loss = vertex_loss_reduced,
+                      vertex_loss=vertex_loss_reduced,
                       **loss_dict_reduced)
 
         optimizer.zero_grad()

@@ -41,9 +41,12 @@ class CombinedROIHeads(torch.nn.ModuleDict):
             losses.update(loss_mask)
 
         if self.cfg.MODEL.VERTEX_ON:
-            mask_features = features
-            x, detections, loss_vertex = self.vertex(mask_features, detections, targets)
-            losses.update(loss_vertex)
+            vertex_features = features
+            x, detections, loss_vertex = self.vertex(vertex_features, detections, targets)
+            if self.cfg.MODEL.VERTEX_ONLY:
+                losses = loss_vertex
+            else:
+                losses.update(loss_vertex)
 
 
         if self.cfg.MODEL.KEYPOINT_ON:
