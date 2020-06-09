@@ -341,16 +341,17 @@ class PolygonInstance(object):
         assert width == height
         polygon = [p.numpy().round().reshape((-1, 2)).astype(np.int32).clip(0, width - 1)
                    for p in self.polygons][0]
+        p_c = polygon
+        # 随机选择整个序列的第一个点
+        polygon = np.roll(polygon[:-1], random.choice(range(polygon.shape[0])), axis=0)
         # 去除由于bbox裁剪导致重复的边缘点
         unique_idx = []
         for i, p in enumerate(polygon):
-            if np.logical_and(*(p != polygon[i - 1])):
-                unique_idx.append(True)
-            else:
+            if np.logical_and(*(p == polygon[i - 1])):
                 unique_idx.append(False)
+            else:
+                unique_idx.append(True)
         polygon = polygon[unique_idx]
-        # 随机选择整个序列的第一个点
-        polygon = np.roll(polygon[:-1], random.choice(range(polygon.shape[0])), axis=0)
         # 使用道格拉斯优化算法简化多边形
         # polygon = cv2.approxPolyDP(polygon, 0, False)[:, 0, :]
         ver_mask = np.zeros(self.size)
