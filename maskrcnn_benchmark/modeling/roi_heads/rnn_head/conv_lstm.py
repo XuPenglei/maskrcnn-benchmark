@@ -101,18 +101,6 @@ class AttConvLSTM(nn.Module):
             out_features=self.grid_size ** 2 + 1,
         )
 
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_in', nonlinearity='relu')
-                if m.bias is not None:
-                    nn.init.constant_(m.bias, 0)
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
-            elif isinstance(m, nn.Linear):
-                nn.init.xavier_uniform_(m.weight)
-                nn.init.constant_(m.bias, 0)
-
         # for m in self.conv_h.modules():
         #     if isinstance(m,nn.ModuleList):
         #         [nn.init.orthogonal(c.weight) for c in m]
@@ -533,31 +521,6 @@ class AttConvLSTM(nn.Module):
                 v_prev1 = utils.class_to_grid(poly[:, t], v_prev1, self.grid_size)
             else:
                 v_prev1 = utils.class_to_grid(pred, v_prev1, self.grid_size)
-
-            # if mode == 'train_ce':
-            #     v_prev1 = utils.class_to_grid(poly[:, t], v_prev1, self.grid_size)
-            #
-            # elif mode == 'train_ggnn' and use_correction:
-            #     # GGNN trains on corrected polygons
-            #
-            #     pred = self.correct_next_input(pred, poly[:, t])
-            #     v_prev1 = utils.class_to_grid(pred, v_prev1, self.grid_size)
-            #
-            # elif mode == 'tool':
-            #     if poly is not None and not expanded:
-            #         if poly[0, t] != self.grid_size ** 2:
-            #             pred = (poly[:, t]).repeat(fp_beam_size)
-            #         else:
-            #             expanded = True
-            #             print('Expanded beam at time: ', t)
-            #             logprob, pred = torch.topk(logprobs[0, :], fp_beam_size, dim=-1)
-            #
-            #     v_prev1 = utils.class_to_grid(pred, v_prev1, self.grid_size)
-            #
-            # else:
-            #     # Test mode or train_rl
-            #     v_prev1 = utils.class_to_grid(pred, v_prev1, self.grid_size)
-
             pred_polys.append(pred.to(torch.float32))
             log_probs.append(logprob)
 
@@ -590,12 +553,6 @@ class AttConvLSTM(nn.Module):
             out_dict['logits'] = logits.permute(1, 0, 2)
 
             out_dict['lengths'] = lengths
-        # out_dict['log_probs'] = log_probs
-
-        # logits = torch.stack(logits)  # (self.time_steps, b, self.grid_size**2 + 1)
-        # out_dict['logits'] = logits.permute(1, 0, 2)
-        #
-        # out_dict['lengths'] = lengths
 
         if return_attention:
             out_attention = torch.stack(out_attention)

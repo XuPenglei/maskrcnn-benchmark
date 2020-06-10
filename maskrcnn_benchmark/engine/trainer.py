@@ -73,7 +73,8 @@ def do_train(
     for iteration, (images, targets, _) in enumerate(data_loader, start_iter):
         
         if any(len(target) < 1 for target in targets):
-            logger.error(f"Iteration={iteration + 1} || Image Ids used for training {_} || targets Length={[len(target) for target in targets]}" )
+            logger.error(
+                f"Iteration={iteration + 1} || Image Ids used for training {_} || targets Length={[len(target) for target in targets]}")
             continue
         data_time = time.time() - end
         iteration = iteration + 1
@@ -83,6 +84,11 @@ def do_train(
         targets = [target.to(device) for target in targets]
 
         loss_dict = model(images, targets)
+        if cfg.MODEL.VERTEX_ONLY:
+            keys = list(loss_dict.keys())
+            for key in keys:
+                if "rnn" not in key:
+                    loss_dict.pop(key)
 
         losses = sum(loss for loss in loss_dict.values())
 
@@ -92,7 +98,7 @@ def do_train(
         if cfg.MODEL.VERTEX_ON:
             vertex_loss_reduced = sum(values for keys, values in loss_dict_reduced.items() if "rnn" in keys)
             if cfg.MODEL.VERTEX_ONLY:
-                detect_loss_reduced = None
+                detect_loss_reduced = 0
         # losses_reduced = sum(loss for loss in loss_dict_reduced.values())
         meters.update(detect_loss=detect_loss_reduced,
                       vertex_loss=vertex_loss_reduced,

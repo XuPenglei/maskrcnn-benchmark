@@ -35,3 +35,4 @@ dist/
 /datasets
 /models
 /output
+/RNN_OUT_DIR_ROIpooling_fix/

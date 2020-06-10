@@ -3,6 +3,7 @@ from torch.nn import functional as F
 
 import numpy as np
 import matplotlib.pyplot as plt
+import random
 
 from maskrcnn_benchmark.modeling.matcher import Matcher
 from maskrcnn_benchmark.structures.boxlist_ops import boxlist_iou
@@ -41,7 +42,7 @@ def dt_targets_from_class(poly, grid_size, dt_threshold):
         targets = []
         for p in poly[b]:
             t = np.zeros(grid_size**2+1, dtype=np.int32)
-            t[p] += 1
+            t[int(p)] += 1
 
             if p != grid_size**2:#EOS
                 spatial_part = t[:-1]
@@ -182,7 +183,7 @@ class Target_Preprocessor(object):
         matched_targets.add_field("matched_vals", match_vals)
         return matched_targets
 
-    def prepare_targets(self,proposals,targets,enlarge_scale,keep_num):
+    def prepare_targets(self, proposals, targets, enlarge_scale, keep_num, random_sample=False):
         labels = []
         ver_masks = []
         edge_masks = []
@@ -211,11 +212,16 @@ class Target_Preprocessor(object):
             # mask scores are only computed on positive samples
             positive_inds = torch.nonzero(labels_per_image > 0).squeeze(1)
             matched_vals = matched_vals[positive_inds]
-            if keep_num>0:
-                sorted_vals, sorted_inds = matched_vals.sort(-1,True)
-                positive_inds = positive_inds[sorted_inds[:keep_num]]
-            # if keep_num>0:
-            #     positive_inds = positive_inds[:keep_num]
+            if keep_num > 0:
+                if random_sample:
+                    if len(positive_inds) > keep_num:
+                        random_i = random.sample(range(len(positive_inds)), keep_num)
+                    else:
+                        random_i = range(len(positive_inds))
+                    positive_inds = positive_inds[random_i]
+                else:
+                    sorted_vals, sorted_inds = matched_vals.sort(-1, True)
+                    positive_inds = positive_inds[sorted_inds[:keep_num]]
 
             segmentation_masks = matched_targets.get_field("masks")
             segmentation_masks = segmentation_masks[positive_inds]

@@ -49,7 +49,7 @@ def closest_node_index(node, nodes):
     return np.argmin(dist_2)
 
 
-def rgb_img_read(img_path,scale=4):
+def rgb_img_read(img_path):
     """
     Read image and always return it as a RGB image (3D vector with 3 channels).
     """
@@ -59,10 +59,6 @@ def rgb_img_read(img_path,scale=4):
 
     # Deal with RGBA
     img = img[..., :3]
-
-    if scale>1:
-        img = cv2.resize(img,(0,0),fx=scale,fy=scale,interpolation=cv2.INTER_CUBIC)
-
     if img.dtype == 'uint8':
         # [0,1] image
         img = img.astype(np.float32)/255
@@ -100,7 +96,7 @@ def poly01_to_poly0g(poly, grid_size):
     """
     [0, 1] coordinates to [0, grid_size] coordinates
 
-    Note: simplification is done at a reduced scale
+        Note: simplification is done at a reduced scale
     """
     poly = np.floor(poly * grid_size).astype(np.int32)
     poly = cv2.approxPolyDP(poly, 0, False)[:, 0, :]

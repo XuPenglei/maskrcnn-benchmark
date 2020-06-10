@@ -134,7 +134,8 @@ def main():
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Training")
     parser.add_argument(
         "--config-file",
-        default=R"E:\Projects\maskrcnn-benchmark\configs\e2e_vertex_rcnn_R_50_FPN_1x.yaml",
+        # default=R"E:\Projects\maskrcnn-benchmark\configs\e2e_vertex_rcnn_R_50_FPN_1x.yaml",
+        default=r"E:\Projects\maskrcnn-benchmark\configs\vertex_only_R_50_FPN_1x.yaml",
         metavar="FILE",
         help="path to config file",
         type=str,

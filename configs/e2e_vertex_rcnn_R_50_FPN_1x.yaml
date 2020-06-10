@@ -35,33 +35,34 @@ MODEL:
     POOLER_SCALES : (0.25, 0.125, 0.0625, 0.03125)
     CONV_LAYERS : (256, 256, 256, 256)
     USE_GN : False
-    USE_BN : True
-    DILATION : 1
-    MAX_LEN : 32
-    HIDDEN_DIM : [64,16]
-    KERNEL_SIZE : 3
-    N_LSTM_LAYERS : 2
+    USE_BN: True
+    DILATION: 1
+    MAX_LEN: 32
+    HIDDEN_DIM: [64,16]
+    KERNEL_SIZE: 3
+    N_LSTM_LAYERS: 2
 
-    SAMPLE_NUM : 4
+    SAMPLE_NUM: 4
 
-    TRAIN_TEMP : 0.
-    TRAIN_BEAM_SIZE : 1
-    TRAIN_FP_BEAM_SIZE : 1
-    
-    TEST_TEMP : 0.
-    TEST_BEAM_SIZE : 1
-    TEST_FP_BEAM_SIZE : 1
-    
-    RETURN_ATTENTION : False
-    DT_THRESOLD : 2
-    
-    FP_VERTEX_WEIGHT : 2
-    FP_EDGE_WEIGHT: 1
+    TRAIN_TEMP: 0.
+    TRAIN_BEAM_SIZE: 1
+    TRAIN_FP_BEAM_SIZE: 1
+
+    TEST_TEMP: 0.
+    TEST_BEAM_SIZE: 1
+    TEST_FP_BEAM_SIZE: 1
+
+    RETURN_ATTENTION: False
+    DT_THRESOLD: 2
+
+    FP_VERTEX_WEIGHT: 200
+    FP_EDGE_WEIGHT: 200
     SOFT_VERTEX_LABEL: False
     SOFT_EDGE_LABEL: False
     VERTEX_SOFT_VALUE: 0.7
     EDGE_SOFT_VALUE: 0.8
   VERTEX_ON: True
+  VERTEX_ONLY: False
 DATASETS:
   TRAIN: ("coco_austin_train",)
   TEST: ("coco_austin_val",)

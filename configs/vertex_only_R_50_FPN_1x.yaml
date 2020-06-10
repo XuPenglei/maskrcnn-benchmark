@@ -5,8 +5,8 @@ INPUT:
   MAX_SIZE_TEST: 1333
 MODEL:
   META_ARCHITECTURE: "GeneralizedRCNN"
-  WEIGHT: "catalog://ImageNetPretrained/MSRA/R-50"
-#  WEIGHT: r"E:\Projects\maskrcnn-benchmark\RNN_OUT_DIR_debug\model_0005000.pth"
+  #  WEIGHT: "catalog://ImageNetPretrained/MSRA/R-50"
+  WEIGHT: r"E:\Projects\maskrcnn-benchmark\RNN_OUT_DIR_vertexOnly\model_0010000.pth"
   BACKBONE:
     CONV_BODY: "R-50-FPN"
   RESNETS:
@@ -37,12 +37,12 @@ MODEL:
     USE_GN : False
     USE_BN : True
     DILATION : 1
-    MAX_LEN : 32
+    MAX_LEN: 71
     HIDDEN_DIM : [64,16]
     KERNEL_SIZE : 3
     N_LSTM_LAYERS : 2
 
-    SAMPLE_NUM : 4
+    SAMPLE_NUM: 2
 
     TRAIN_TEMP : 0.
     TRAIN_BEAM_SIZE: 1
@@ -62,7 +62,7 @@ MODEL:
     VERTEX_SOFT_VALUE: 0.7
     EDGE_SOFT_VALUE: 0.8
   VERTEX_ON: True
-  VERTEX_ONLY: TRUE
+  VERTEX_ONLY: True
 DATASETS:
   TRAIN: ("coco_austin_train",)
   TEST: ("coco_austin_val",)
@@ -72,13 +72,13 @@ SOLVER:
   BASE_LR: 0.0001
   WEIGHT_DECAY: 0.0001
   STEPS: (60000, 80000)
-  MAX_ITER: 10000
+  MAX_ITER: 10001
   CHECKPOINT_PERIOD: 1000
-  TEST_PERIOD: 1000
+  TEST_PERIOD: 0
   IMS_PER_BATCH: 1
 TEST:
   IMS_PER_BATCH: 1
-OUTPUT_DIR: r"E:\Projects\maskrcnn-benchmark\RNN_OUT_DIR_ROIpooling_fix"
+OUTPUT_DIR: r"E:\Projects\maskrcnn-benchmark\RNN_OUT_DIR_vertexOnly_v1"
 DTYPE: "float32"
 
 
