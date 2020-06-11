@@ -46,11 +46,11 @@ SOLVER:
   STEPS: (60000, 80000)
   MAX_ITER: 1010
   CHECKPOINT_PERIOD: 1000
-  TEST_PERIOD: 0
-  IMS_PER_BATCH: 2
+  TEST_PERIOD: 200
+  IMS_PER_BATCH: 12
 TEST:
-  IMS_PER_BATCH: 2
-OUTPUT_DIR: r"E:\Projects\maskrcnn-benchmark\OUT_DIR"
-DTYPE: "float16"
+  IMS_PER_BATCH: 12
+OUTPUT_DIR: r"/home/super/桌面/xpl/maskrcnn-benchmark/output"
+DTYPE: "float32"
 
 

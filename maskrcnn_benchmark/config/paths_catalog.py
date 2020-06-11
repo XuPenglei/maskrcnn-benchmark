@@ -156,12 +156,20 @@ class DatasetCatalog(object):
             "ann_file": r"E:\ResearchDOC\term2\MSRCNN_polyrnn\test\test\test.json"
         },
         "coco_austin_train": {
-            "img_dir": r"E:\ResearchDOC\term2\MSRCNN_polyrnn\maskrcnn-benchmark\dataForLittleTest\IMG",
-            "ann_file": r"E:\ResearchDOC\term2\MSRCNN_polyrnn\maskrcnn-benchmark\dataForLittleTest\inria.json"
+            "img_dir": r"/home/super/桌面/oec-net/LittleDatasets/Inria/Overfit/img",
+            "ann_file": r"/home/super/桌面/oec-net/LittleDatasets/Inria/Overfit/ann.json"
         },
         "coco_austin_val": {
-            "img_dir": r"E:\ResearchDOC\term2\MSRCNN_polyrnn\maskrcnn-benchmark\dataForLittleTest\IMG",
-            "ann_file": r"E:\ResearchDOC\term2\MSRCNN_polyrnn\maskrcnn-benchmark\dataForLittleTest\inria.json"
+            "img_dir": r"/home/super/桌面/oec-net/LittleDatasets/Inria/Overfit/img",
+            "ann_file": r"E/home/super/桌面/oec-net/LittleDatasets/Inria/Overfit/ann.json"
+        },
+        "coco_inria_train": {
+            "img_dir": r"/home/super/桌面/oec-net/LittleDatasets/Inria/TrainForMaskrcnn/train/images",
+            "ann_file": r"/home/super/桌面/oec-net/LittleDatasets/Inria/TrainForMaskrcnn/train/annotation.json"
+        },
+        "coco_inria_val": {
+            "img_dir": r"/home/super/桌面/oec-net/LittleDatasets/Inria/TrainForMaskrcnn/val/images",
+            "ann_file": r"/home/super/桌面/oec-net/LittleDatasets/Inria/TrainForMaskrcnn/val/annotation.json"
         },
     }
 

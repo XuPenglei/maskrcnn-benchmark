@@ -25,9 +25,7 @@ def get_extensions():
     sources = main_file + source_cpu
     extension = CppExtension
 
-    # extra_compile_args = {"cxx": []}
-    extra_compile_args = {"cxx": ['/MD']}
-    extra_link_args = ['c10_cuda.lib','/NODEFAULTLIB:LIBCMT.LIB']
+    extra_compile_args = {"cxx": []}
     define_macros = []
 
     if (torch.cuda.is_available() and CUDA_HOME is not None) or os.getenv("FORCE_CUDA", "0") == "1":
@@ -45,15 +43,6 @@ def get_extensions():
 
     include_dirs = [extensions_dir]
 
-    # ext_modules = [
-    #     extension(
-    #         "maskrcnn_benchmark._C",
-    #         sources,
-    #         include_dirs=include_dirs,
-    #         define_macros=define_macros,
-    #         extra_compile_args=extra_compile_args,
-    #     )
-    # ]
     ext_modules = [
         extension(
             "maskrcnn_benchmark._C",
@@ -61,8 +50,7 @@ def get_extensions():
             include_dirs=include_dirs,
             define_macros=define_macros,
             extra_compile_args=extra_compile_args,
-            extra_link_args = extra_link_args,
-            )
+        )
     ]
 
     return ext_modules

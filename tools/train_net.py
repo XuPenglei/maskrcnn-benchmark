@@ -134,7 +134,7 @@ def main():
     parser = argparse.ArgumentParser(description="PyTorch Object Detection Training")
     parser.add_argument(
         "--config-file",
-        default=R"E:\Projects\maskrcnn-benchmark\configs\Inria_e2e_mask_rcnn_R_50_FPN_1x.yaml",
+        default=R"/home/super/桌面/xpl/maskrcnn-benchmark/configs/Inria_e2e_mask_rcnn_R_50_FPN_1x.yaml",
         metavar="FILE",
         help="path to config file",
         type=str,
@@ -198,4 +198,5 @@ def main():
 
 
 if __name__ == "__main__":
+    os.environ["CUDA_VISIBLE_DEVICES"]='1'
     main()
