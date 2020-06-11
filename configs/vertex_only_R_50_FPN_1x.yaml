@@ -64,8 +64,8 @@ MODEL:
   VERTEX_ON: True
   VERTEX_ONLY: True
 DATASETS:
-  TRAIN: ("coco_austin_train",)
-  TEST: ("coco_austin_val",)
+  TRAIN: ("coco_verOnly",)
+  TEST: ("coco_verOnly",)
 DATALOADER:
   SIZE_DIVISIBILITY: 32
 SOLVER:

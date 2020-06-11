@@ -157,11 +157,15 @@ class DatasetCatalog(object):
         },
         "coco_austin_train": {
             "img_dir": r"E:\ResearchDOC\term2\MSRCNN_polyrnn\maskrcnn-benchmark\dataForLittleTest\IMG",
-            "ann_file": r"E:\ResearchDOC\term2\MSRCNN_polyrnn\maskrcnn-benchmark\dataForLittleTest\inria.json"
+            "ann_file": r"E:\ResearchDOC\term2\MSRCNN_polyrnn\maskrcnn-benchmark\dataForLittleTest\austin2_02_16.json"
         },
         "coco_austin_val": {
             "img_dir": r"E:\ResearchDOC\term2\MSRCNN_polyrnn\maskrcnn-benchmark\dataForLittleTest\IMG",
-            "ann_file": r"E:\ResearchDOC\term2\MSRCNN_polyrnn\maskrcnn-benchmark\dataForLittleTest\inria.json"
+            "ann_file": r"E:\ResearchDOC\term2\MSRCNN_polyrnn\maskrcnn-benchmark\dataForLittleTest\austin2_02_16.json"
+        },
+        "coco_verOnly": {
+            "img_dir": r"E:\ResearchDOC\term2\MSRCNN_polyrnn\maskrcnn-benchmark\dataForLittleTest\IMG_vertexonly",
+            "ann_file": r"E:\ResearchDOC\term2\MSRCNN_polyrnn\maskrcnn-benchmark\dataForLittleTest\IMG_vertexonly\inria.json"
         },
     }
 

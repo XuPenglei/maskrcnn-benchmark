@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.pylab as pylab
 import cv2
+from skimage import transform
+import skimage
 
 import logging
 import time
@@ -20,6 +22,7 @@ from maskrcnn_benchmark.modeling.roi_heads.mask_head.inference import Masker
 from maskrcnn_benchmark.data import make_data_loader
 from maskrcnn_benchmark.modeling.detector import build_detection_model
 from maskrcnn_benchmark.utils.checkpoint import DetectronCheckpointer
+from maskrcnn_benchmark.utils import cv2_util
 
 from maskrcnn_benchmark.config import cfg
 
@@ -40,42 +43,21 @@ def overlay_boxes(image, predictions):
 
 
 def overlay_mask(image, predictions):
-    masks = predictions.get_field("mask").numpy()
+    masks = predictions.get_field("mask").numpy().squeeze()
+    size = image.shape[:2]
     labels = predictions.get_field("labels")
     color_single = [255, 0, 0]
-    for mask, color in zip(masks, colors):
-        thresh = mask[0, :, :, None].astype(np.uint8)
+    for mask in masks:
+        mask = transform.resize(mask, size, preserve_range=True, order=3).astype(np.uint8)
+        thresh = mask[:, :, None].astype(np.uint8)
         contours, hierarchy = cv2_util.findContours(
             thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
         )
         image = cv2.drawContours(image, contours, -1, color_single, 1)
-        # image = cv2.addWeighted(image,0.8,mask[0][:,:,None].repeat(3,-1),0.2,0)
 
     composite = image
 
     return composite
-
-
-def compute_on_dataset(model, data_loader, device, timer=None):
-    model.eval()
-    results_dict = {}
-    cpu_device = torch.device("cpu")
-    for _, batch in enumerate(tqdm(data_loader)):
-        images, targets, image_ids = batch
-        with torch.no_grad():
-            if timer:
-                timer.tic()
-            else:
-                output = model(images.to(device))
-            if timer:
-                if not device.type == 'cpu':
-                    torch.cuda.synchronize()
-                timer.toc()
-            output = [o.to(cpu_device) for o in output]
-        results_dict.update(
-            {img_id: result for img_id, result in zip(image_ids, output)}
-        )
-    return results_dict
 
 
 def build(cfg, is_train=False):
@@ -92,31 +74,31 @@ def build(cfg, is_train=False):
     return data_loader_val[0], model
 
 
-def predict_from_dataloader(cfg, original_size):
+def predict_from_dataloader(cfg):
     data_loader, model = build(cfg, True)
     device = torch.device(cfg.MODEL.DEVICE)
     cpu_device = torch.device('cpu')
     pred_list = []
     masker = Masker(threshold=0.5, padding=1)
-    img_list = []
-    for images, targets, _ in data_loader:
-        img_list.append(images)
+    ids = []
+    dataset = data_loader.dataset
+    for images, targets, img_ids in data_loader:
         images = images.to(device)
         targets = [target.to(device) for target in targets]
         with torch.no_grad():
             predictions = model(images, targets)
         predictions = [o.to(cpu_device) for o in predictions]
-        pred_list.append(predictions)
-    height, width = original_size
-    pred_transformed_list = []
-    for prediction in pred_list:
-        prediction = prediction.resize((width, height))
+        pred_list.extend(predictions)
+        ids.extend(img_ids)
+    pred_transformed_list = {}
+    for prediction, id in zip(pred_list, ids):
+        # prediction = singleIMG_pred.resize((width, height))
         if prediction.has_field("mask"):
             masks = prediction.get_field("mask")
             masks = masker([masks], [prediction])[0]
             prediction.add_field("mask", masks)
-        pred_transformed_list.append(prediction)
-    return pred_transformed_list, img_list
+        pred_transformed_list.update({id: prediction})
+    return pred_transformed_list, dataset
 
 
 def overlay_pred(img, prediction, mask_on=True):
@@ -129,9 +111,20 @@ def overlay_pred(img, prediction, mask_on=True):
 
 def main():
     config_file = "../configs/vertex_only_R_50_FPN_1x.yaml"
+    img_dir = r"E:\ResearchDOC\term2\MSRCNN_polyrnn\maskrcnn-benchmark\dataForLittleTest\IMG_vertexonly"
     cfg.merge_from_file(config_file)
-    preds, imgs = predict_from_dataloader(cfg, [800, 800])
-
+    preds, dataset = predict_from_dataloader(cfg)
+    for image_id, p in preds.items():
+        original_id = dataset.id_to_img_map[image_id]
+        img_info = dataset.get_img_info(image_id)
+        img_w = img_info["width"]
+        img_h = img_info["height"]
+        path = os.path.join(img_dir, img_info["file_name"])
+        img = np.array(Image.open(path).convert("RGB"))
+        p = p.resize((img_w, img_h))
+        result = overlay_mask(img, p)
+        plt.imshow(result)
+        plt.show()
 
 if __name__ == "__main__":
     main()

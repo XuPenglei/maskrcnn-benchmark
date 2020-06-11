@@ -31,7 +31,7 @@ def imshow(img):
     plt.axis("off")
     plt.show()
 
-image = load(r'E:\ResearchDOC\term2\MSRCNN_polyrnn\maskrcnn-benchmark\dataForLittleTest\IMG\austin4_02_05.tif')
+image = load(r'E:\ResearchDOC\term2\MSRCNN_polyrnn\maskrcnn-benchmark\dataForLittleTest\IMG\austin2_02_16.tif')
 # imshow(image)
 
 predictions = coco_demo.run_on_opencv_image(image)

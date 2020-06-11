@@ -71,7 +71,6 @@ class ROIRnnHead(torch.nn.Module):
         random_sample = False
         if self.cfg.MODEL.VERTEX_ONLY:
             proposals = targets
-            random_sample = False
         if self.training:
             fp_beam_size = self.cfg.MODEL.ROI_RNN_HEAD.TRAIN_FP_BEAM_SIZE
             lstm_beam_size = self.cfg.MODEL.ROI_RNN_HEAD.TRAIN_BEAM_SIZE
@@ -196,7 +195,7 @@ class ROIRnnHead(torch.nn.Module):
                 if self.cfg.MODEL.VERTEX_ONLY:
                     factor = 1
                 else:
-                    factor = 0.01
+                    factor = 0.1
                 vertex_loss = losses.poly_vertex_loss_mle(torch.from_numpy(dt_targets).to(device),
                                                           poly_masks, out_dict['logits']) * factor
                 fp_edge_loss = fp_edge_weight * losses.fp_edge_loss(edge_masks,
@@ -205,7 +204,7 @@ class ROIRnnHead(torch.nn.Module):
                                                                           out_dict['vertex_logits']) * factor
 
             result = self.post_processor(out_dict['pred_polys'], proposals)
-            if not self.training and not self.cfg.MODEL.VERTEX_ONLY:
+            if self.training and not self.cfg.MODEL.VERTEX_ONLY:
                 return x, result, dict(rnn_loss_vertex=vertex_loss, rnn_loss_fp_edge=fp_edge_loss,
                                        rnn_loss_fp_vertex=fp_vertex_loss)
             else:
