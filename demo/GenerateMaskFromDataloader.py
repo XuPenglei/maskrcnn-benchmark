@@ -61,7 +61,7 @@ def overlay_mask(image, predictions):
 
 
 def build(cfg, is_train=False):
-    data_loader_val = make_data_loader(cfg, is_train=is_train, is_distributed=False, start_iter=10000)
+    data_loader_val = make_data_loader(cfg, is_train=is_train, is_distributed=False, start_iter=0)
     model = build_detection_model(cfg)
     model.eval()
     device = torch.device(cfg.MODEL.DEVICE)
@@ -110,8 +110,10 @@ def overlay_pred(img, prediction, mask_on=True):
 
 
 def main():
-    config_file = "../configs/vertex_only_R_50_FPN_1x.yaml"
-    img_dir = r"E:\ResearchDOC\term2\MSRCNN_polyrnn\maskrcnn-benchmark\dataForLittleTest\IMG_vertexonly"
+    # config_file = "../configs/vertex_only_R_50_FPN_1x.yaml"
+    # img_dir = r"E:\ResearchDOC\term2\MSRCNN_polyrnn\maskrcnn-benchmark\dataForLittleTest\IMG_vertexonly"
+    config_file = "../configs/e2e_vertex_rcnn_R_50_FPN_doubleBranch.yaml"
+    img_dir = r"E:\ResearchDOC\term2\MSRCNN_polyrnn\maskrcnn-benchmark\dataForLittleTest\IMG"
     cfg.merge_from_file(config_file)
     preds, dataset = predict_from_dataloader(cfg)
     for image_id, p in preds.items():

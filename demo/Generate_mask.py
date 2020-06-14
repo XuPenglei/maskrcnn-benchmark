@@ -7,7 +7,7 @@ pylab.rcParams['figure.figsize'] = 20, 12
 from maskrcnn_benchmark.config import cfg
 from predictor import COCODemo
 
-config_file = "../configs/e2e_vertex_rcnn_R_50_FPN_1x.yaml"
+config_file = "../configs/e2e_vertex_rcnn_R_50_FPN_doubleBranch.yaml"
 
 # update the config options with the config file
 cfg.merge_from_file(config_file)

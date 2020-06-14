@@ -9,6 +9,51 @@ from . import fpn as fpn_module
 from . import resnet
 
 
+class DoubleFPN(nn.Module):
+    """ 创建一个拥有相同编码结构和同样结构但是不同的解码分支的backbone """
+
+    def __init__(self, cfg):
+        super(DoubleFPN, self).__init__()
+        self.body = nn.Sequential(OrderedDict([("body", resnet.ResNet(cfg))]))
+        in_channels_stage2 = cfg.MODEL.RESNETS.RES2_OUT_CHANNELS
+        out_channels = cfg.MODEL.RESNETS.BACKBONE_OUT_CHANNELS
+        self.out_channels = out_channels
+        fpn_detect = fpn_module.FPN(
+            in_channels_list=[
+                in_channels_stage2,
+                in_channels_stage2 * 2,
+                in_channels_stage2 * 4,
+                in_channels_stage2 * 8,
+            ],
+            out_channels=out_channels,
+            conv_block=conv_with_kaiming_uniform(
+                cfg.MODEL.FPN.USE_GN, cfg.MODEL.FPN.USE_RELU
+            ),
+            top_blocks=fpn_module.LastLevelMaxPool(),
+        )
+        fpn_vertex = fpn_module.FPN(
+            in_channels_list=[
+                in_channels_stage2,
+                in_channels_stage2 * 2,
+                in_channels_stage2 * 4,
+                in_channels_stage2 * 8,
+            ],
+            out_channels=out_channels,
+            conv_block=conv_with_kaiming_uniform(
+                cfg.MODEL.FPN.USE_GN, cfg.MODEL.FPN.USE_RELU
+            ),
+            top_blocks=fpn_module.LastLevelMaxPool(),
+        )
+        self.fpn_detect = nn.Sequential(OrderedDict([("fpn_detect", fpn_detect)]))
+        self.fpn_vertex = nn.Sequential(OrderedDict([("fpn_vertex", fpn_vertex)]))
+
+    def forward(self, x):
+        res_out = self.body(x)
+        detect_feature = self.fpn_detect(res_out)
+        vertex_feature = self.fpn_vertex(res_out)
+        return detect_feature, vertex_feature
+
+
 @registry.BACKBONES.register("R-50-C4")
 @registry.BACKBONES.register("R-50-C5")
 @registry.BACKBONES.register("R-101-C4")
@@ -45,6 +90,10 @@ def build_resnet_fpn_backbone(cfg):
     return model
 
 
+@registry.BACKBONES.register("R-50-FPN-DOUBLEBRANCH")
+def build_resnet_fpn_doubleBranch_backbone(cfg):
+    return DoubleFPN(cfg)
+
 @registry.BACKBONES.register("R-50-FPN-RETINANET")
 @registry.BACKBONES.register("R-101-FPN-RETINANET")
 def build_resnet_fpn_p3p7_backbone(cfg):
@@ -76,4 +125,6 @@ def build_backbone(cfg):
         "cfg.MODEL.BACKBONE.CONV_BODY: {} are not registered in registry".format(
             cfg.MODEL.BACKBONE.CONV_BODY
         )
+    if cfg.MODEL.ROI_RNN_HEAD.INDIVIDUAL_FPN:
+        assert cfg.MODEL.BACKBONE.CONV_BODY == 'R-50-FPN-DOUBLEBRANCH'
     return registry.BACKBONES[cfg.MODEL.BACKBONE.CONV_BODY](cfg)

@@ -10,7 +10,6 @@ class AttConvLSTM(nn.Module):
         hidden_dim: Number of hidden states in the convLSTM
         """
         super(AttConvLSTM, self).__init__()
-        # TODO: 多GPU设置？
         self.device = cfg.MODEL.DEVICE
         self.feats_channels = cfg.MODEL.RESNETS.BACKBONE_OUT_CHANNELS
         self.grid_size = cfg.MODEL.ROI_RNN_HEAD.POOLER_RESOLUTION

@@ -9,10 +9,16 @@ def make_optimizer(cfg, model):
     for key, value in model.named_parameters():
         if not value.requires_grad:
             continue
+
         lr = cfg.SOLVER.BASE_LR
+        # 非roi_heads不更新
+        # if cfg.MODEL.VERTEX_AFTER_RCNN:
+        #     if "vertex" not in key:
+        #         continue
         # roi_heads的学习率为其他部分学习率的**
-        # if "vertex" in key:
-        #     lr = lr*0.1
+        # if cfg.MODEL.VERTEX_AFTER_RCNN:
+        #     if "vertex" in key:
+        #         lr = lr*10
         weight_decay = cfg.SOLVER.WEIGHT_DECAY
         if "bias" in key:
             lr = cfg.SOLVER.BASE_LR * cfg.SOLVER.BIAS_LR_FACTOR

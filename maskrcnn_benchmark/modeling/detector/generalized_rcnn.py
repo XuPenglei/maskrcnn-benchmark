@@ -51,7 +51,10 @@ class GeneralizedRCNN(nn.Module):
         if self.cfg.MODEL.VERTEX_ONLY:
             proposals = None
         else:
-            proposals, proposal_losses = self.rpn(images, features, targets)
+            if self.cfg.MODEL.ROI_RNN_HEAD.INDIVIDUAL_FPN:
+                proposals, proposal_losses = self.rpn(images, features[0], targets)
+            else:
+                proposals, proposal_losses = self.rpn(images, features, targets)
         if self.roi_heads:
             x, result, detector_losses = self.roi_heads(features, proposals, targets)
         else:

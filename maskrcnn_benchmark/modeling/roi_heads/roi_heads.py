@@ -27,10 +27,16 @@ class CombinedROIHeads(torch.nn.ModuleDict):
         if self.cfg.MODEL.VERTEX_ONLY:
             detections = None
         else:
-            x, detections, loss_box = self.box(features, proposals, targets)
+            if self.cfg.MODEL.ROI_RNN_HEAD.INDIVIDUAL_FPN:
+                x, detections, loss_box = self.box(features[0], proposals, targets)
+            else:
+                x, detections, loss_box = self.box(features, proposals, targets)
             losses.update(loss_box)
         if self.cfg.MODEL.MASK_ON:
-            mask_features = features
+            if self.cfg.MODEL.ROI_RNN_HEAD.INDIVIDUAL_FPN:
+                mask_features = features[0]
+            else:
+                mask_features = features
             # optimization: during training, if we share the feature extractor between
             # the box and the mask heads, then we can reuse the features already computed
             if (
@@ -44,7 +50,10 @@ class CombinedROIHeads(torch.nn.ModuleDict):
             losses.update(loss_mask)
 
         if self.cfg.MODEL.VERTEX_ON:
-            vertex_features = features
+            if self.cfg.MODEL.ROI_RNN_HEAD.INDIVIDUAL_FPN:
+                vertex_features = features[1]
+            else:
+                vertex_features = features
             x, detections, loss_vertex = self.vertex(vertex_features, detections, targets)
             if self.cfg.MODEL.VERTEX_ONLY:
                 losses = loss_vertex

@@ -69,6 +69,10 @@ class ROIRnnHead(torch.nn.Module):
 
     def forward(self, features, proposals, targets=None):
         random_sample = False
+        if self.cfg.MODEL.ROI_RNN_HEAD.INDIVIDUAL_FPN and self.training:
+            # 在训练时两个分支完全分开，使用gt_box来训练
+            proposals = targets
+        # if self.cfg.MODEL.VERTEX_ONLY or self.cfg.MODEL.ROI_RNN_HEAD.INDIVIDUAL_FPN:
         if self.cfg.MODEL.VERTEX_ONLY:
             proposals = targets
         if self.training:
@@ -82,6 +86,7 @@ class ROIRnnHead(torch.nn.Module):
                                                          self.cfg.MODEL.ROI_RNN_HEAD.BOX_ENLARGE_RATIO,
                                                          keep_num=self.cfg.MODEL.ROI_RNN_HEAD.SAMPLE_NUM,
                                                          random_sample=random_sample)
+        # elif self.cfg.MODEL.VERTEX_ONLY or self.cfg.MODEL.ROI_RNN_HEAD.INDIVIDUAL_FPN:
         elif self.cfg.MODEL.VERTEX_ONLY:
             fp_beam_size = self.cfg.MODEL.ROI_RNN_HEAD.TEST_FP_BEAM_SIZE
             lstm_beam_size = self.cfg.MODEL.ROI_RNN_HEAD.TEST_BEAM_SIZE
@@ -113,11 +118,11 @@ class ROIRnnHead(torch.nn.Module):
                                      grid_size=self.cfg.MODEL.ROI_RNN_HEAD.POOLER_RESOLUTION)
             first_v = poly_class[:, 0]
             first_logprob = None
+
+        # elif self.cfg.MODEL.VERTEX_ONLY or self.cfg.MODEL.ROI_RNN_HEAD.INDIVIDUAL_FPN:
         elif self.cfg.MODEL.VERTEX_ONLY:
             poly_class_V_only = xy_to_class(arr_polys,
                                             grid_size=self.cfg.MODEL.ROI_RNN_HEAD.POOLER_RESOLUTION)
-
-
 
         out_dict = self.conv_lstm(
             x,
@@ -176,8 +181,11 @@ class ROIRnnHead(torch.nn.Module):
         out_dict.pop('rnn_state')
         out_dict.pop('feats')
 
+        vertex_loss_factor = self.cfg.MODEL.ROI_RNN_HEAD.LOSS_FACTOR
+
         if targets is not None:
 
+            # if not self.cfg.MODEL.VERTEX_ONLY and not self.cfg.MODEL.ROI_RNN_HEAD.INDIVIDUAL_FPN:
             if not self.cfg.MODEL.VERTEX_ONLY:
                 dt_targets = dt_targets_from_class(out_dict['poly_class'].cpu().numpy(),
                                                    self.cfg.MODEL.ROI_RNN_HEAD.POOLER_RESOLUTION,
@@ -192,28 +200,27 @@ class ROIRnnHead(torch.nn.Module):
                         device)
                 fp_edge_weight = self.cfg.MODEL.ROI_RNN_HEAD.FP_EDGE_WEIGHT
                 fp_vertex_weight = self.cfg.MODEL.ROI_RNN_HEAD.FP_VERTEX_WEIGHT
-                if self.cfg.MODEL.VERTEX_ONLY:
-                    factor = 1
-                else:
-                    factor = 0.1
-                vertex_loss = losses.poly_vertex_loss_mle(torch.from_numpy(dt_targets).to(device),
-                                                          poly_masks, out_dict['logits']) * factor
-                fp_edge_loss = fp_edge_weight * losses.fp_edge_loss(edge_masks,
-                                                                    out_dict['edge_logits']) * factor
-                fp_vertex_loss = fp_vertex_weight * losses.fp_vertex_loss(ver_masks,
-                                                                          out_dict['vertex_logits']) * factor
 
-            result = self.post_processor(out_dict['pred_polys'], proposals)
-            if self.training and not self.cfg.MODEL.VERTEX_ONLY:
-                return x, result, dict(rnn_loss_vertex=vertex_loss, rnn_loss_fp_edge=fp_edge_loss,
-                                       rnn_loss_fp_vertex=fp_vertex_loss)
-            else:
-                return x, result, {}
+                if self.training:
+                    vertex_loss = losses.poly_vertex_loss_mle(torch.from_numpy(dt_targets).to(device),
+                                                              poly_masks, out_dict['logits']) * vertex_loss_factor
+                    fp_edge_loss = fp_edge_weight * losses.fp_edge_loss(edge_masks,
+                                                                        out_dict['edge_logits']) * vertex_loss_factor
+                    fp_vertex_loss = fp_vertex_weight * losses.fp_vertex_loss(ver_masks,
+                                                                              out_dict[
+                                                                                  'vertex_logits']) * vertex_loss_factor
+
+            # else:
+            #     result = self.post_processor(out_dict['pred_polys'], proposals)
+            # if self.training and not self.cfg.MODEL.VERTEX_ONLY:
+            #     return x, result, dict(rnn_loss_vertex=vertex_loss, rnn_loss_fp_edge=fp_edge_loss,
+            #                            rnn_loss_fp_vertex=fp_vertex_loss)
+            # else:
+            #     return x, result, {}
 
         else:
-            if not self.training:
-                result = self.post_processor(out_dict['pred_polys'], proposals)
-                return x, result, {}
+            result = self.post_processor(out_dict['pred_polys'], proposals)
+            return x, result, {}
 
         return x, all_proposals, dict(rnn_loss_vertex = vertex_loss, rnn_loss_fp_edge = fp_edge_loss, rnn_loss_fp_vertex = fp_vertex_loss)
 
