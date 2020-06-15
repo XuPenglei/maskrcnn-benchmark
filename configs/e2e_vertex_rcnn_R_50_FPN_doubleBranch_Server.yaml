@@ -5,10 +5,9 @@ INPUT:
   MAX_SIZE_TEST: 1333
 MODEL:
   META_ARCHITECTURE: "GeneralizedRCNN"
-  #  WEIGHT: "catalog://ImageNetPretrained/MSRA/R-50"
-  WEIGHT: r"E:\Projects\maskrcnn-benchmark\OUT_after_rnnOverfit\model_0007000.pth"
+  WEIGHT: "catalog://ImageNetPretrained/MSRA/R-50"
   BACKBONE:
-    CONV_BODY: "R-50-FPN"
+    CONV_BODY: "R-50-FPN-DOUBLEBRANCH"
   RESNETS:
     BACKBONE_OUT_CHANNELS: 256
   RPN:
@@ -27,22 +26,29 @@ MODEL:
     FEATURE_EXTRACTOR: "FPN2MLPFeatureExtractor"
     PREDICTOR: "FPNPredictor"
     NUM_CLASSES: 2
+
+  VERTEX_ON: True
+  VERTEX_AFTER_RCNN: False
+  VERTEX_ONLY: False
+
   ROI_RNN_HEAD:
-    BOX_ENLARGE_RATIO : 0.25
-    FEATURE_EXTRACTOR : "RNNFPNFeatureExtractor"
-    POOLER_RESOLUTION : 28
-    POOLER_SAMPLING_RATIO : 2
-    POOLER_SCALES : (0.25, 0.125, 0.0625, 0.03125)
-    CONV_LAYERS : (256, 256, 256, 256)
-    USE_GN : False
+    INDIVIDUAL_FPN: True
+    BOX_ENLARGE_RATIO: 0.25
+    FEATURE_EXTRACTOR: "RNNFPNFeatureExtractor"
+    POOLER_RESOLUTION: 28
+    POOLER_SAMPLING_RATIO: 2
+    POOLER_SCALES: (0.25, 0.125, 0.0625, 0.03125)
+    CONV_LAYERS: (256, 256, 256, 256)
+    USE_GN: False
     USE_BN: True
     DILATION: 1
+    #    这一个参数需要根据Vertex顶点数统计
     MAX_LEN: 71
     HIDDEN_DIM: [64,16]
     KERNEL_SIZE: 3
     N_LSTM_LAYERS: 2
-
-    SAMPLE_NUM: 2
+    # 需要根据机器情况改变
+    SAMPLE_NUM: 16
 
     TRAIN_TEMP: 0.
     TRAIN_BEAM_SIZE: 1
@@ -61,27 +67,26 @@ MODEL:
     SOFT_EDGE_LABEL: False
     VERTEX_SOFT_VALUE: 0.7
     EDGE_SOFT_VALUE: 0.8
-    LOSS_FACTOR: 0.1
-  VERTEX_ON: True
-  VERTEX_AFTER_RCNN: True
-  VERTEX_ONLY: False
+    LOSS_FACTOR: 1.
+
 DATASETS:
-  TRAIN: ("coco_austin_train",)
-  TEST: ("coco_austin_val",)
+  #  需要根据实际情况设置，文件路径在maskrcnn_benchmark\config\paths_catalog.py中修改
+  TRAIN: ("coco_austinP40_train",)
+  TEST: ("coco_austinP40_val",)
 DATALOADER:
   SIZE_DIVISIBILITY: 32
 SOLVER:
-  BASE_LR: 0.00001
+  BASE_LR: 0.0001
   WEIGHT_DECAY: 0.0001
-  WARMUP_ITERS: 100
-  STEPS: (3000, 8000)
-  MAX_ITER: 10000
-  CHECKPOINT_PERIOD: 1000
-  TEST_PERIOD: 1000
-  IMS_PER_BATCH: 1
+  WARMUP_ITERS: 1000
+  STEPS: (30000, 80000)
+  MAX_ITER: 100000
+  CHECKPOINT_PERIOD: 5000
+  TEST_PERIOD: 10000
+  IMS_PER_BATCH: 8
 TEST:
-  IMS_PER_BATCH: 1
-OUTPUT_DIR: r"E:\Projects\maskrcnn-benchmark\OUT_after_rnnOverfit\out_after_boxOverfit_v1"
+  IMS_PER_BATCH: 8
+OUTPUT_DIR: r"E:\Projects\maskrcnn-benchmark\OUT_doubleBranch"
 DTYPE: "float32"
 
 

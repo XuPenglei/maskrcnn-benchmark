@@ -72,6 +72,9 @@ class ROIRnnHead(torch.nn.Module):
         if self.cfg.MODEL.ROI_RNN_HEAD.INDIVIDUAL_FPN and self.training:
             # 在训练时两个分支完全分开，使用gt_box来训练
             proposals = targets
+            #    非过拟合选项
+            random_sample = True
+
         # if self.cfg.MODEL.VERTEX_ONLY or self.cfg.MODEL.ROI_RNN_HEAD.INDIVIDUAL_FPN:
         if self.cfg.MODEL.VERTEX_ONLY:
             proposals = targets

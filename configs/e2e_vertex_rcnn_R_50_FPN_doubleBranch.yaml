@@ -5,8 +5,8 @@ INPUT:
   MAX_SIZE_TEST: 1333
 MODEL:
   META_ARCHITECTURE: "GeneralizedRCNN"
-  WEIGHT: "catalog://ImageNetPretrained/MSRA/R-50"
-  #  WEIGHT: r"E:\Projects\maskrcnn-benchmark\OUT_after_rnnOverfit\model_0007000.pth"
+  #  WEIGHT: "catalog://ImageNetPretrained/MSRA/R-50"
+  WEIGHT: r"E:\Projects\maskrcnn-benchmark\OUT_doubleBranch\model_0007000.pth"
   BACKBONE:
     CONV_BODY: "R-50-FPN-DOUBLEBRANCH"
   RESNETS:
@@ -81,7 +81,7 @@ SOLVER:
   WARMUP_ITERS: 100
   STEPS: (3000, 8000)
   MAX_ITER: 10000
-  CHECKPOINT_PERIOD: 1000
+  CHECKPOINT_PERIOD: 2000
   TEST_PERIOD: 1000
   IMS_PER_BATCH: 1
 TEST:

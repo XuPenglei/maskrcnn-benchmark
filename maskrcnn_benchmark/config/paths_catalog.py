@@ -167,6 +167,14 @@ class DatasetCatalog(object):
             "img_dir": r"E:\ResearchDOC\term2\MSRCNN_polyrnn\maskrcnn-benchmark\dataForLittleTest\IMG_vertexonly",
             "ann_file": r"E:\ResearchDOC\term2\MSRCNN_polyrnn\maskrcnn-benchmark\dataForLittleTest\IMG_vertexonly\inria.json"
         },
+        "coco_austinP40_train": {
+            "img_dir": r"/home/super/桌面/instance_seg/MaskRCNN/TrainForMaskrcnn/train/images",
+            "ann_file": r"/home/super/桌面/instance_seg/MaskRCNN/TrainForMaskrcnn/train/annotation.json"
+        },
+        "coco_austinP40_val": {
+            "img_dir": r"E/home/super/桌面/instance_seg/MaskRCNN/TrainForMaskrcnn/val/images",
+            "ann_file": r"/home/super/桌面/instance_seg/MaskRCNN/TrainForMaskrcnn/val/annotation.json"
+        },
     }
 
     @staticmethod
