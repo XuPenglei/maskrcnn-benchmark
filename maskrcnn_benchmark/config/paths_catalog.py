@@ -172,7 +172,7 @@ class DatasetCatalog(object):
             "ann_file": r"/home/super/桌面/instance_seg/MaskRCNN/TrainForMaskrcnn/train/annotation.json"
         },
         "coco_austinP40_val": {
-            "img_dir": r"E/home/super/桌面/instance_seg/MaskRCNN/TrainForMaskrcnn/val/images",
+            "img_dir": r"/home/super/桌面/instance_seg/MaskRCNN/TrainForMaskrcnn/val/images",
             "ann_file": r"/home/super/桌面/instance_seg/MaskRCNN/TrainForMaskrcnn/val/annotation.json"
         },
     }

@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import maskrcnn_benchmark.modeling.roi_heads.rnn_head.rnn_utils as utils
+import os
 
 class AttConvLSTM(nn.Module):
     def __init__(self, cfg):

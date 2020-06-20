@@ -43,12 +43,12 @@ MODEL:
     USE_BN: True
     DILATION: 1
     #    这一个参数需要根据Vertex顶点数统计
-    MAX_LEN: 71
+    MAX_LEN: 51
     HIDDEN_DIM: [64,16]
     KERNEL_SIZE: 3
     N_LSTM_LAYERS: 2
     # 需要根据机器情况改变
-    SAMPLE_NUM: 16
+    SAMPLE_NUM: 12
 
     TRAIN_TEMP: 0.
     TRAIN_BEAM_SIZE: 1
@@ -82,11 +82,11 @@ SOLVER:
   STEPS: (30000, 80000)
   MAX_ITER: 100000
   CHECKPOINT_PERIOD: 5000
-  TEST_PERIOD: 10000
-  IMS_PER_BATCH: 8
+  TEST_PERIOD: 5000
+  IMS_PER_BATCH: 4
 TEST:
-  IMS_PER_BATCH: 8
-OUTPUT_DIR: r"E:\Projects\maskrcnn-benchmark\OUT_doubleBranch"
+  IMS_PER_BATCH: 4
+OUTPUT_DIR: r"/home/super/桌面/xpl/maskrcnn-benchmark/Out_DoubleBranch_Austin"
 DTYPE: "float32"
 
 

@@ -337,8 +337,9 @@ class PolygonInstance(object):
 
     def convert_to_rnnformat(self,max_len):
         width, height = self.size
-        assert len(self.polygons) == 1
+        # assert len(self.polygons) == 1, self.polygons
         assert width == height
+        # 对一个Polygon有多个部分的情况只选择第一个部分
         polygon = [p.numpy().round().reshape((-1, 2)).astype(np.int32).clip(0, width - 1)
                    for p in self.polygons][0]
         p_c = polygon
