@@ -154,24 +154,6 @@ def main():
     preds, dataset = predict_from_dataloader(cfg)
     out_dict = {}
     out_dict = predict_from_dataloader(cfg, img_dir, outIMGDir)
-    # for image_id, p in preds.items():
-    #     original_id = dataset.id_to_img_map[image_id]
-    #     img_info = dataset.get_img_info(image_id)
-    #     img_w = img_info["width"]
-    #     img_h = img_info["height"]
-    #     path = os.path.join(img_dir, img_info["file_name"])
-    #     img = np.array(Image.open(path).convert("RGB"))
-    #     p = p.resize((img_w, img_h))
-    #     result = overlay_boxes(img,p)
-    #     result = overlay_class_names(img,p)
-    #     result = overlay_mask(img, p)
-    #     plt.tight_layout()
-    #     plt.imshow(result)
-    #     plt.savefig(os.path.join(outIMGDir,img_info["file_name"].split('.')[0]+'.png'),
-    #                 dpi=300,bbox_inches='tight')
-    #     plt.close()
-    #     out_dict.update({img_info["file_name"]:[p.bbox.cpu().numpy().tolist(),
-    #                                             p.get_field('mask_poly')]})
     if out_json:
         with open(out_json, 'w') as f:
             json.dump(out_dict, f)
