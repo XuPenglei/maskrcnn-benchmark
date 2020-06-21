@@ -28,6 +28,15 @@ from maskrcnn_benchmark.utils import cv2_util
 from maskrcnn_benchmark.config import cfg
 
 
+def select_top_predictions(predictions, confidence_threshold):
+    scores = predictions.get_field("scores")
+    keep = torch.nonzero(scores > confidence_threshold).squeeze(1)
+    predictions = predictions[keep]
+    scores = predictions.get_field("scores")
+    _, idx = scores.sort(0, descending=True)
+    return predictions[idx]
+
+
 def overlay_class_names(image, predictions):
     scores = predictions.get_field("scores").tolist()
     # labels = predictions.get_field("labels").tolist()
@@ -93,7 +102,7 @@ def build(cfg, is_train=False):
     return data_loader_val[0], model
 
 
-def predict_from_dataloader(cfg):
+def predict_from_dataloader(cfg, img_dir, outIMGDir):
     data_loader, model = build(cfg, False)
     device = torch.device(cfg.MODEL.DEVICE)
     cpu_device = torch.device('cpu')
@@ -109,28 +118,15 @@ def predict_from_dataloader(cfg):
         predictions = [o.to(cpu_device) for o in predictions]
         pred_list.extend(predictions)
         ids.extend(img_ids)
-    pred_transformed_list = {}
+    out_dict = {}
     for prediction, id in zip(pred_list, ids):
         # prediction = singleIMG_pred.resize((width, height))
         if prediction.has_field("mask"):
             masks = prediction.get_field("mask")
             masks = masker([masks], [prediction])[0]
             prediction.add_field("mask", masks)
-        pred_transformed_list.update({id: prediction})
-    return pred_transformed_list, dataset
-
-def main():
-    # config_file = "../configs/vertex_only_R_50_FPN_1x.yaml"
-    # img_dir = r"E:\ResearchDOC\term2\MSRCNN_polyrnn\maskrcnn-benchmark\dataForLittleTest\IMG_vertexonly"
-    config_file = "../configs/e2e_vertex_rcnn_R_50_FPN_doubleBranch.yaml"
-    img_dir = r"E:\ResearchDOC\term2\MSRCNN_polyrnn\maskrcnn-benchmark\dataForLittleTest\IMG"
-    out_json = r'F:\项目相关\实验室开放项目\test.json'
-    cfg.merge_from_file(config_file)
-    preds, dataset = predict_from_dataloader(cfg)
-    out_dict = {}
-    for image_id, p in preds.items():
-        original_id = dataset.id_to_img_map[image_id]
-        img_info = dataset.get_img_info(image_id)
+        original_id = dataset.id_to_img_map[id]
+        img_info = dataset.get_img_info(id)
         img_w = img_info["width"]
         img_h = img_info["height"]
         path = os.path.join(img_dir, img_info["file_name"])
@@ -139,13 +135,47 @@ def main():
         result = overlay_boxes(img, p)
         result = overlay_class_names(img, p)
         result = overlay_mask(img, p)
+        plt.tight_layout()
         plt.imshow(result)
-        plt.show()
+        plt.savefig(os.path.join(outIMGDir, img_info["file_name"].split('.')[0] + '.png'),
+                    dpi=300, bbox_inches='tight')
+        plt.close()
         out_dict.update({img_info["file_name"]: [p.bbox.cpu().numpy().tolist(),
                                                  p.get_field('mask_poly')]})
+    return out_dict
+
+
+def main():
+    config_file = r"/home/super/桌面/xpl/maskrcnn-benchmark/configs/e2e_vertex_rcnn_R_50_FPN_doubleBranch_Server.yaml"
+    img_dir = r"/home/super/桌面/instance_seg/MaskRCNN/TrainForMaskrcnn/val/images"
+    jsonDir = r'/home/super/桌面/xpl/maskrcnn-benchmark/Out_DoubleBranch_Austin/PredJson/Inference.json'
+    outIMGDir = r'/home/super/桌面/xpl/maskrcnn-benchmark/Out_DoubleBranch_Austin/InferenceRes'
+    cfg.merge_from_file(config_file)
+    preds, dataset = predict_from_dataloader(cfg)
+    out_dict = {}
+    out_dict = predict_from_dataloader(cfg, img_dir, outIMGDir)
+    # for image_id, p in preds.items():
+    #     original_id = dataset.id_to_img_map[image_id]
+    #     img_info = dataset.get_img_info(image_id)
+    #     img_w = img_info["width"]
+    #     img_h = img_info["height"]
+    #     path = os.path.join(img_dir, img_info["file_name"])
+    #     img = np.array(Image.open(path).convert("RGB"))
+    #     p = p.resize((img_w, img_h))
+    #     result = overlay_boxes(img,p)
+    #     result = overlay_class_names(img,p)
+    #     result = overlay_mask(img, p)
+    #     plt.tight_layout()
+    #     plt.imshow(result)
+    #     plt.savefig(os.path.join(outIMGDir,img_info["file_name"].split('.')[0]+'.png'),
+    #                 dpi=300,bbox_inches='tight')
+    #     plt.close()
+    #     out_dict.update({img_info["file_name"]:[p.bbox.cpu().numpy().tolist(),
+    #                                             p.get_field('mask_poly')]})
     if out_json:
         with open(out_json, 'w') as f:
             json.dump(out_dict, f)
+
 
 if __name__ == "__main__":
     main()

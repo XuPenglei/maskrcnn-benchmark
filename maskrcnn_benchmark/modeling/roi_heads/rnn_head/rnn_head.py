@@ -183,7 +183,7 @@ class ROIRnnHead(torch.nn.Module):
 
         vertex_loss_factor = self.cfg.MODEL.ROI_RNN_HEAD.LOSS_FACTOR
 
-        if targets is not None:
+        if targets is not None and self.training:
 
             # if not self.cfg.MODEL.VERTEX_ONLY and not self.cfg.MODEL.ROI_RNN_HEAD.INDIVIDUAL_FPN:
             if not self.cfg.MODEL.VERTEX_ONLY:

@@ -19,44 +19,75 @@ def class_to_grid(poly,grid_size,mask=None):
         else:
             break
     if mask is not None:
-        assert mask.shape[0]==mask.shape[1]==grid_size
-        cv2.fillPoly(mask,[np.array(grid_polygon)],[1])
+        assert mask.shape[0] == mask.shape[1] == grid_size
+        cv2.fillPoly(mask, [np.array(grid_polygon)], [1])
         return mask
     return grid_polygon
 
-def vertexs_to_mask(vertexs,boxes,grid_size,device):
+
+def class_to_grid_generate(poly, grid_size):
+    grid_polygon = []
+    for i in poly:
+        if i < grid_size * grid_size:
+            x = int(i % grid_size)
+            y = int(i / grid_size)
+            grid_polygon.extend([x, y])
+        else:
+            break
+    return grid_polygon
+
+
+def vertexs_to_mask(vertexs, boxes, grid_size, device):
     boxes_per_img = [len(b) for b in boxes]
-    vertexs = vertexs.split(boxes_per_img,dim=0)
+    vertexs = vertexs.split(boxes_per_img, dim=0)
     masks = []
     for vers_perIMG in vertexs:
         masks_perIMG = []
         vers_perIMG = vers_perIMG.cpu().numpy()
         for vs in vers_perIMG:
-            mask = np.zeros((grid_size,grid_size),dtype=np.uint8)
+            mask = np.zeros((grid_size, grid_size), dtype=np.uint8)
             # vs_class = np.argmax(vs,axis=1)
-            mask = class_to_grid(vs,grid_size,mask)
+            mask = class_to_grid(vs, grid_size, mask)
             masks_perIMG.append(mask)
-        masks_perIMG = np.expand_dims(np.array(masks_perIMG),axis=1)
+        masks_perIMG = np.expand_dims(np.array(masks_perIMG), axis=1)
         masks.append(torch.from_numpy(masks_perIMG).to(device))
     return masks
 
+
+def vertexs_to_poly(vertexs, boxes, grid_size):
+    boxes_per_img = [len(b) for b in boxes]
+    vertexs = vertexs.split(boxes_per_img, dim=0)
+    polys = []
+    for vers_perIMG in vertexs:
+        polys_perIMG = []
+        vers_perIMG = vers_perIMG.cpu().numpy()
+        for vs in vers_perIMG:
+            poly = class_to_grid_generate(vs, grid_size)
+            polys_perIMG.append(poly)
+        polys.append(polys_perIMG)
+    return polys
+
+
 class VertexPostProcessor(nn.Module):
-    def __init__(self, grid_size,masker=None ):
+    def __init__(self, grid_size, masker=None):
         super(VertexPostProcessor, self).__init__()
         self.masker = masker
         self.grid_size = grid_size
 
     def forward(self, x, boxes):
-        masks = vertexs_to_mask(x,boxes,grid_size=self.grid_size,device=x.device)
+        masks = vertexs_to_mask(x, boxes, grid_size=self.grid_size, device=x.device)
+        polys = vertexs_to_poly(x, boxes, grid_size=self.grid_size)
         if self.masker:
             masks = self.masker(masks)
 
         results = []
-        for mask, box in zip(masks,boxes):
+        for mask, box, poly in zip(masks, boxes, polys):
             bbox = BoxList(box.bbox, box.size, mode="xyxy")
             for field in box.fields():
                 bbox.add_field(field, box.get_field(field))
             bbox.add_field("mask", mask)
+            bbox.add_field('mask_poly', poly)
+
             results.append(bbox)
 
         return results
